@@ -1,0 +1,45 @@
+<div class="auth-container">
+  <h2>Iniciar Sesión</h2>
+  <form (ngSubmit)="onSubmit()" #loginForm="ngForm" class="auth-form">
+    <div *ngIf="errorMessage" class="error-message">{{ errorMessage }}</div>
+    <div *ngIf="isLoading" class="loading-message">Iniciando sesión...</div>
+
+    <div class="form-group">
+      <label for="login-identifier">Correo Electrónico o Nombre de Usuario:</label>
+      <input type="text"
+             id="login-identifier"
+             [(ngModel)]="credenciales.loginIdentifier"
+             name="loginIdentifier"
+             required
+             #identifierInput="ngModel"
+             [ngClass]="{'input-error': identifierInput.invalid && (identifierInput.dirty || identifierInput.touched)}">
+      <div *ngIf="identifierInput.invalid && (identifierInput.dirty || identifierInput.touched)" class="validation-error">
+        <small *ngIf="identifierInput.errors?.['required']">Este campo es requerido.</small>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="login-contrasena">Contraseña:</label>
+      <input type="password"
+             id="login-contrasena"
+             [(ngModel)]="credenciales.contrasena"
+             name="contrasena"
+             required
+             #contrasenaInput="ngModel"
+             [ngClass]="{'input-error': contrasenaInput.invalid && (contrasenaInput.dirty || contrasenaInput.touched)}">
+      <div *ngIf="contrasenaInput.invalid && (contrasenaInput.dirty || contrasenaInput.touched)" class="validation-error">
+        <small *ngIf="contrasenaInput.errors?.['required']">La contraseña es requerida.</small>
+      </div>
+    </div>
+
+    <button type="submit" [disabled]="loginForm.invalid || isLoading" class="auth-button">
+      <span *ngIf="!isLoading">Iniciar Sesión</span>
+      <span *ngIf="isLoading">Procesando...</span>
+    </button>
+  </form>
+
+  <div class="auth-links">
+    <p>¿No tienes cuenta? <a routerLink="/registro">Regístrate aquí</a></p>
+    <p><a routerLink="/recuperar-contrasena">¿Olvidaste tu contraseña?</a></p>
+  </div>
+</div>

@@ -1,0 +1,35 @@
+<app-header></app-header>
+
+<!-- Contenedor para el mensaje de éxito -->
+<div *ngIf="mensajeExito" class="mensaje-exito">
+  Producto agregado al carrito con éxito!
+</div>
+
+<!-- Contenedor para el mensaje de error -->
+<div *ngIf="mensajeError" class="mensaje-error">
+  {{ mensajeError }}
+</div>
+
+<main class="contenedor-productos">
+  <h2 class="titulo-centrado">Catálogo de Gorras</h2>
+  <div *ngIf="productos.length === 0" class="productos-vacios">
+    <p>No hay productos disponibles en este momento o están cargando...</p>
+  </div>
+  <div class="productos" *ngIf="productos.length > 0">
+    <!-- producto ya tiene la propiedad displayUrl del servicio -->
+    <div *ngFor="let producto of productos" class="producto">
+      <!-- CORRECCIÓN: Usa producto.displayUrl -->
+      <img [src]="producto.displayUrl"
+            alt="{{producto.nombre}}"
+            onError="this.src='assets/default.webp'"> <!-- Asegúrate que assets/default.webp exista -->
+      <h3>{{producto.nombre}}</h3>
+      <p>Precio: {{producto.precio | currency:'MXN':'symbol':'1.2-2' }}</p>
+      <p>Disponibles: {{producto.cantidad}}</p>
+      <p *ngIf="!producto.cantidad || producto.cantidad === 0" class="producto-agotado">Producto agotado</p>
+      <button (click)="agregarAlCarrito(producto)" [disabled]="!producto.cantidad || producto.cantidad === 0">
+        <i class="fa-solid fa-cart-shopping"></i>
+        Añadir
+      </button>
+    </div>
+  </div>
+</main>

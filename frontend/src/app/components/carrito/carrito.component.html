@@ -1,0 +1,85 @@
+<app-header></app-header>
+
+<div class="carrito-container">
+  <div class="header">
+    <button class="acciones__boton" (click)="irAProductos()">
+      <i class="fa-solid fa-circle-arrow-left"></i>
+      Regresar
+    </button>
+    <h2>Carrito de compras</h2>
+  </div>
+
+  <div class="carrito-contenido" *ngIf="carrito.length > 0 && !mostrarModalConfirmacion">
+    <ul class="carrito-lista">
+      <li class="carrito-item" *ngFor="let producto of carrito; let i = index">
+          <div class="producto-info">
+            <span class="producto-nombre">{{ producto.nombre }}</span>
+            <span class="producto-precio">{{ producto.precio | currency:'MXN':'symbol':'1.2-2' }}</span> 
+            <span class="producto-cantidad">
+              Cantidad:
+              <input type="number" 
+                    [ngModel]="producto.cantidadEnCarrito"  (ngModelChange)="actualizarCantidad(producto.carritoId, $event)" 
+                    min="1" /> 
+            </span>
+          </div>
+          <button class="eliminar-button" (click)="eliminarProducto(producto.carritoId)">Eliminar</button>
+      </li>
+    </ul>
+
+    <div class="carrito-resumen">
+      <div class="carrito-total">
+        <div class="subtotal">
+          <span>Subtotal: </span>
+          <span>{{ calcularSubtotal() | currency:'MXN':'symbol':'1.2-2' }}</span>
+        </div>
+        <div class="iva">
+          <span>IVA (16%): </span>
+          <span>{{ calcularIVA() | currency:'MXN':'symbol':'1.2-2' }}</span>
+        </div>
+        <div class="total">
+          <span>Total: </span>
+          <span>{{ calcularTotal() | currency:'MXN':'symbol':'1.2-2' }}</span>
+        </div>
+      </div>
+      <div id="paypal-button-container" *ngIf="carrito.length > 0">
+         <p *ngIf="errorPayPalInit" class="text-danger" style="color: red; text-align: center;">Error al cargar el método de pago. Intente recargar la página.</p>
+      </div>
+    </div>
+  </div>
+
+  <p *ngIf="carrito.length === 0 && !mostrarModalConfirmacion" class="carrito-vacio">
+    <i class="fa-solid fa-cart-shopping"></i>
+    El carrito está vacío
+  </p>
+</div>
+
+<div *ngIf="mostrarModalConfirmacion && detallesCompra" class="confirmacion-compra">
+  <div class="confirmacion-contenido">
+    <i class="fa-solid fa-circle-check"></i>
+    <h3>¡Compra Realizada!</h3>
+    <p>Tu pago de {{ detallesCompra.totalPagado | currency:'MXN':'symbol':'1.2-2' }} ha sido procesado.</p>
+    <p>ID de transacción: {{ detallesCompra.transactionId }}</p>
+
+    <div *ngIf="detallesCompra.fallosStock && detallesCompra.fallosStock.length > 0" class="advertencias-stock">
+      <h4>Advertencias sobre el Stock:</h4>
+      <ul class="lista-fallos">
+        <li *ngFor="let fallo of detallesCompra.fallosStock">
+          No se pudo actualizar el stock para: {{ fallo.productoNombre }} (Error: {{ fallo.mensajeError }})
+        </li>
+      </ul>
+      <p>Por favor, contacta a soporte si tienes dudas.</p>
+    </div>
+    
+    <div class="recibo-modal">
+      <h4>Recibo de Compra (XML)</h4>
+      <textarea readonly class="recibo-contenido-modal">{{ detallesCompra.reciboXML }}</textarea>
+      <button class="recibo-button-modal" (click)="descargarReciboDelModal()">
+        <i class="fa-solid fa-download"></i> Descargar Recibo
+      </button>
+    </div>
+
+    <button class="confirmacion-boton" (click)="cerrarModalConfirmacionYRedirigir()">
+      Volver a la tienda
+    </button>
+  </div>
+</div>

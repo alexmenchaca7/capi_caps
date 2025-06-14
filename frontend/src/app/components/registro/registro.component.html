@@ -1,0 +1,98 @@
+<div class="auth-container">
+  <h2>Crear Cuenta</h2>
+  <form (ngSubmit)="onSubmit()" #registroForm="ngForm" class="auth-form">
+    <div *ngIf="errorMessage" class="error-message">{{ errorMessage }}</div>
+    <div *ngIf="successMessage" class="success-message">{{ successMessage }}</div>
+    <div *ngIf="isLoading" class="loading-message">Registrando...</div>
+
+    <!-- Nombre -->
+    <div class="form-group">
+      <label for="registro-nombre">Nombre:</label>
+      <input type="text" id="registro-nombre" [(ngModel)]="datosUsuario.nombre" name="nombre" required #nombreInput="ngModel"
+             [ngClass]="{'input-error': nombreInput.invalid && (nombreInput.dirty || nombreInput.touched)}">
+      <div *ngIf="nombreInput.invalid && (nombreInput.dirty || nombreInput.touched)" class="validation-error">
+        <small *ngIf="nombreInput.errors?.['required']">El nombre es requerido.</small>
+      </div>
+    </div>
+
+    <!-- Apellido -->
+    <div class="form-group">
+      <label for="registro-apellido">Apellido:</label>
+      <input type="text" id="registro-apellido" [(ngModel)]="datosUsuario.apellido" name="apellido" required #apellidoInput="ngModel"
+             [ngClass]="{'input-error': apellidoInput.invalid && (apellidoInput.dirty || apellidoInput.touched)}">
+      <div *ngIf="apellidoInput.invalid && (apellidoInput.dirty || apellidoInput.touched)" class="validation-error">
+        <small *ngIf="apellidoInput.errors?.['required']">El apellido es requerido.</small>
+      </div>
+    </div>
+
+    <!-- Nombre de Usuario -->
+    <div class="form-group">
+      <label for="registro-username">Nombre de Usuario:</label>
+      <input type="text" id="registro-username" [(ngModel)]="datosUsuario.username" name="username" required minlength="3" maxlength="20" pattern="^[a-zA-Z0-9_]+$" #usernameInput="ngModel"
+             [ngClass]="{'input-error': usernameInput.invalid && (usernameInput.dirty || usernameInput.touched)}">
+      <div *ngIf="usernameInput.invalid && (usernameInput.dirty || usernameInput.touched)" class="validation-error">
+        <small *ngIf="usernameInput.errors?.['required']">El nombre de usuario es requerido.</small>
+        <small *ngIf="usernameInput.errors?.['minlength']">Mínimo 3 caracteres.</small>
+        <small *ngIf="usernameInput.errors?.['maxlength']">Máximo 20 caracteres.</small>
+        <small *ngIf="usernameInput.errors?.['pattern']">Solo letras, números y guion bajo.</small>
+      </div>
+    </div>
+
+    <!-- Correo Electrónico -->
+    <div class="form-group">
+      <label for="registro-correo">Correo Electrónico:</label>
+      <input type="email" id="registro-correo" [(ngModel)]="datosUsuario.correo" name="correo" required email #correoRegInput="ngModel"
+             [ngClass]="{'input-error': correoRegInput.invalid && (correoRegInput.dirty || correoRegInput.touched)}">
+      <div *ngIf="correoRegInput.invalid && (correoRegInput.dirty || correoRegInput.touched)" class="validation-error">
+        <small *ngIf="correoRegInput.errors?.['required']">El correo es requerido.</small>
+        <small *ngIf="correoRegInput.errors?.['email']">Ingrese un correo válido.</small>
+      </div>
+    </div>
+
+    <!-- Teléfono (Opcional pero con formato y posible validación de pattern) -->
+    <div class="form-group">
+      <label for="registro-telefono">Teléfono (Opcional):</label>
+      <input type="tel" 
+             id="registro-telefono" 
+             [(ngModel)]="datosUsuario.telefono" 
+             name="telefono" 
+             #telefonoInput="ngModel"
+             pattern="^[0-9]{7,15}$" 
+             [ngClass]="{'input-error': telefonoInput.invalid && (telefonoInput.dirty || telefonoInput.touched) && telefonoInput.value !== ''}"> <!-- Mostrar error solo si hay valor Y es inválido -->
+      <div *ngIf="telefonoInput.invalid && (telefonoInput.dirty || telefonoInput.touched) && telefonoInput.value !== ''" class="validation-error">
+        <!-- Como es opcional, solo mostramos error si se ingresó algo y es inválido -->
+        <small *ngIf="telefonoInput.errors?.['pattern']">Ingrese un número de teléfono válido (solo números, 7-15 dígitos).</small>
+      </div>
+    </div>
+
+    <!-- Contraseña -->
+    <div class="form-group">
+        <label for="registro-contrasena">Contraseña:</label>
+        <input type="password" id="registro-contrasena" 
+              [(ngModel)]="datosUsuario.contrasena" 
+              name="contrasena" required minlength="8"
+              #contrasenaRegInput="ngModel"
+              [ngClass]="{'input-error': contrasenaRegInput.invalid && (contrasenaRegInput.dirty || contrasenaRegInput.touched)}">
+        <div *ngIf="contrasenaRegInput.invalid && (contrasenaRegInput.dirty || contrasenaRegInput.touched)" class="validation-error">
+            <small *ngIf="contrasenaRegInput.errors?.['required']">La contraseña es requerida.</small>
+            <small *ngIf="contrasenaRegInput.errors?.['minlength']">Mínimo 8 caracteres.</small>
+        </div>
+        <div class="password-requirements">
+            <small>Debe contener al menos:</small>
+            <small>• 8 caracteres</small>
+            <small>• 1 letra mayúscula</small>
+            <small>• 1 letra minúscula</small>
+            <small>• 1 número</small>
+        </div>
+    </div>
+
+    <button type="submit" [disabled]="registroForm.invalid || isLoading" class="auth-button">
+        <span *ngIf="!isLoading">Registrarse</span>
+        <span *ngIf="isLoading">Procesando...</span>
+    </button>
+  </form>
+
+  <div class="auth-links">
+    <p>¿Ya tienes una cuenta? <a routerLink="/login">Inicia sesión aquí</a></p>
+  </div>
+</div>

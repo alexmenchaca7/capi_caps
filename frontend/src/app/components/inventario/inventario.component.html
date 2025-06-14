@@ -1,0 +1,106 @@
+<app-header></app-header>
+
+<!-- Contenedor para los mensajes de éxito -->
+<div *ngIf="mensajeExito" class="mensaje-exito">
+  {{ mensajeExito }}
+</div>
+
+<!-- Contenedor para los mensajes de error -->
+<div *ngIf="mensajeError" class="mensaje-error">
+  {{ mensajeError }}
+</div>
+
+<div class="inventario-container">
+
+  <div class="header">
+    <button class="acciones__boton" (click)="irAProductos()">
+      <i class="fa-solid fa-circle-arrow-left"></i>
+      Regresar
+    </button>
+  
+    <h2>Inventario de Productos</h2>
+  </div>
+
+  <div class="nuevo-producto">
+    <div class="campo">
+      <label for="nombre">Nombre</label>
+      <input [(ngModel)]="nuevoProducto.nombre" placeholder="Nombre del producto" required />
+    </div>
+    <div class="campo">
+      <label for="precio">Precio</label>
+      <input [(ngModel)]="nuevoProducto.precio" type="text" placeholder="Precio del producto" required (input)="validarNumero($event)" />
+    </div>
+    <div class="campo">
+      <label for="cantidad">Cantidad</label>
+      <input [(ngModel)]="nuevoProducto.cantidad" type="number" placeholder="Cantidad del producto" required />
+    </div>
+    <div class="campo">
+      <label for="imagen">Imagen</label>
+      <input type="file" (change)="onFileSelected($event)" required />
+    </div>
+    <button (click)="agregarProducto()">
+      <i class="fa-solid fa-circle-plus"></i>
+      Agregar Producto
+    </button>
+  </div>
+
+  <table class="table">
+    <thead class="table__thead">
+      <tr>
+        <th scope="col" class="table__th">Nombre</th>
+        <th scope="col" class="table__th">Precio</th>
+        <th scope="col" class="table__th">Cantidad</th>
+        <th scope="col" class="table__th">Imagen</th>
+        <th scope="col" class="table__th"></th>
+      </tr>
+    </thead>
+    <tbody class="table__tbody">
+      <tr class="table__tr" *ngFor="let producto of productos; let i = index"> 
+        <td class="table__td">{{ producto.nombre }}</td>
+        <td class="table__td">{{ producto.precio | currency:'MXN':'symbol':'1.2-2' }}</td>
+        <td class="table__td">{{ producto.cantidad }}</td>
+        <td class="table__td">
+          <img [src]="producto.displayUrl"
+                alt="{{producto.nombre}}"
+                class="producto-imagen-tabla" 
+                onError="this.src='assets/default.webp'">
+        </td>
+        <td class="table__td--acciones">
+          <button class="table__accion table__accion--editar" (click)="abrirModal(producto)">
+            <i class="fa-solid fa-user-pen"></i>
+            Actualizar
+          </button>
+          <button class="table__accion table__accion--eliminar" (click)="eliminarProducto(producto.id)">
+            <i class="fa-solid fa-circle-xmark"></i>
+            Eliminar
+          </button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- Modal -->
+<div class="modal" *ngIf="mostrarModal" (click)="cerrarModal($event)">
+  <div class="modal-contenido" (click)="$event.stopPropagation()">
+    <h2>Actualizar Producto</h2>
+    <div class="formulario-actualizar">
+      <input [(ngModel)]="productoSeleccionado.nombre" placeholder="Nombre del producto" required />
+      <input [(ngModel)]="productoSeleccionado.precio" type="text" placeholder="Precio del producto" required (input)="validarNumero($event)" />
+      <input [(ngModel)]="productoSeleccionado.cantidad" type="number" placeholder="Cantidad del producto" required />
+      <div class="campo--imagen">
+        <label for="imagen">Imagen Actual</label>
+        <img [src]="productoSeleccionado.tempImagenPreview || productoSeleccionado.displayUrl || 'assets/default.webp'"
+              alt="{{productoSeleccionado.nombre}}" class="producto-imagen"
+              onError="this.src='assets/default.webp'" />
+      </div>
+      <div class="campo">
+        <label for="imagen">Cambiar Imagen</label>
+        <input type="file" (change)="onFileSelected($event, true)" />
+      </div>
+      <button (click)="actualizarProducto()" [disabled]="!productoSeleccionado.nombre || !productoSeleccionado.precio || productoSeleccionado.cantidad === undefined">
+        Actualizar
+      </button>
+    </div>
+  </div>
+</div>

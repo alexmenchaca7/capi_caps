@@ -1,0 +1,26 @@
+<header>
+  <h1>
+    <a routerLink="/"> <!-- Usar routerLink para navegación interna de Angular -->
+      <i class="fa-solid fa-hat-cowboy"></i>
+      CapiCaps
+    </a>
+  </h1>
+  <nav>
+    <a routerLink="/productos" routerLinkActive="active-link">Productos</a>
+
+    <!-- Mostrar Carrito solo si está logueado -->
+    <a *ngIf="isLoggedIn()" routerLink="/carrito" routerLinkActive="active-link">Carrito</a>
+
+    <!-- Mostrar Inventario solo si es Administrador -->
+    <a *ngIf="isAdmin()" routerLink="/inventario" routerLinkActive="active-link">Inventario</a>
+
+    <!-- Sección de Autenticación -->
+    <ng-container *ngIf="currentUser; else loggedOutLinks">
+      <button (click)="logout()" class="auth-button logout-button">Cerrar Sesión</button>
+    </ng-container>
+    <ng-template #loggedOutLinks>
+      <a routerLink="/login" routerLinkActive="active-link" class="auth-button login-button">Login</a>
+      <a routerLink="/registro" routerLinkActive="active-link" class="auth-button register-button">Registro</a>
+    </ng-template>
+  </nav>
+</header>

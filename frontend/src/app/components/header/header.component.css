@@ -1,0 +1,39 @@
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #272727;
+  padding: 30px;
+}
+
+header h1 {
+  margin: 0;
+  font-size: 28px;
+}
+
+header h1 a {
+  color: white;
+  text-decoration: none;
+}
+
+nav {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+nav a, nav button {
+  font-size: 18px; /* Ajustar tamaño */
+  font-weight: 500; /* Ligeramente menos bold que antes para diferenciar de h1 */
+  color: white;
+  cursor: pointer;
+  text-decoration: none;
+  padding: 8px 12px; /* Añadir padding para mejor click area */
+  border-radius: 4px;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+nav a:hover, nav button:hover {
+  background-color: #444; /* Un hover sutil */
+  text-decoration: none; /* Evitar doble subrayado si ya es un enlace */
+}

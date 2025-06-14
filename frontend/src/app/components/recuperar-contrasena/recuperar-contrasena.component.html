@@ -1,0 +1,69 @@
+<div class="auth-container">
+  <h2>Recuperar Contraseña</h2>
+  <p class="info-message">
+    Ingresa tu correo electrónico o nombre de usuario y una nueva contraseña.
+    Si el identificador está registrado, tu contraseña será actualizada.
+  </p>
+
+  <form (ngSubmit)="onSubmit()" #recuperarForm="ngForm" class="auth-form">
+    <div *ngIf="errorMessage" class="error-message">{{ errorMessage }}</div>
+    <div *ngIf="successMessage" class="success-message">{{ successMessage }}</div>
+    <div *ngIf="isLoading" class="loading-message">Procesando...</div>
+
+    <div class="form-group">
+      <label for="recuperar-identifier">Correo Electrónico o Nombre de Usuario:</label>
+      <input type="text"
+             id="recuperar-identifier"
+             [(ngModel)]="datos.loginIdentifier"
+             name="loginIdentifier"
+             required
+             #identifierInput="ngModel"
+             [ngClass]="{'input-error': identifierInput.invalid && (identifierInput.dirty || identifierInput.touched)}">
+      <div *ngIf="identifierInput.invalid && (identifierInput.dirty || identifierInput.touched)" class="validation-error">
+        <small *ngIf="identifierInput.errors?.['required']">Este campo es requerido.</small>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="recuperar-nueva-contrasena">Nueva Contraseña:</label>
+      <input type="password"
+             id="recuperar-nueva-contrasena"
+             [(ngModel)]="datos.nuevaContrasena"
+             name="nuevaContrasena"
+             required
+             minlength="6"
+             #nuevaContrasenaInput="ngModel"
+             [ngClass]="{'input-error': nuevaContrasenaInput.invalid && (nuevaContrasenaInput.dirty || nuevaContrasenaInput.touched)}">
+      <div *ngIf="nuevaContrasenaInput.invalid && (nuevaContrasenaInput.dirty || nuevaContrasenaInput.touched)" class="validation-error">
+        <small *ngIf="nuevaContrasenaInput.errors?.['required']">La nueva contraseña es requerida.</small>
+        <small *ngIf="nuevaContrasenaInput.errors?.['minlength']">Mínimo 6 caracteres.</small>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="recuperar-confirmar-contrasena">Confirmar Nueva Contraseña:</label>
+      <input type="password"
+             id="recuperar-confirmar-contrasena"
+             [(ngModel)]="datos.confirmarNuevaContrasena"
+             name="confirmarNuevaContrasena"
+             required
+             #confirmarInput="ngModel"
+             [ngClass]="{'input-error': confirmarInput.invalid && (confirmarInput.dirty || confirmarInput.touched) || (recuperarForm.value.nuevaContrasena !== recuperarForm.value.confirmarNuevaContrasena && confirmarInput.dirty) }">
+      <div *ngIf="confirmarInput.invalid && (confirmarInput.dirty || confirmarInput.touched)" class="validation-error">
+        <small *ngIf="confirmarInput.errors?.['required']">Confirmar la contraseña es requerido.</small>
+      </div>
+      <div *ngIf="recuperarForm.value.nuevaContrasena !== recuperarForm.value.confirmarNuevaContrasena && confirmarInput.dirty && !confirmarInput.errors?.['required']" class="validation-error">
+        <small>Las contraseñas no coinciden.</small>
+      </div>
+    </div>
+
+    <button type="submit" [disabled]="recuperarForm.invalid || datos.nuevaContrasena !== datos.confirmarNuevaContrasena || isLoading" class="auth-button">
+      <span *ngIf="!isLoading">Actualizar Contraseña</span>
+      <span *ngIf="isLoading">Actualizando...</span>
+    </button>
+  </form>
+
+  <div class="auth-links">
+    <a routerLink="/login" class="auth-links">Volver a Inicio de Sesión</a>
+  </div>
+</div>
