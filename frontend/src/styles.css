@@ -34,7 +34,9 @@ color: #555;
 
 .auth-form input[type="text"],
 .auth-form input[type="email"],
-.auth-form input[type="password"] {
+.auth-form input[type="password"],
+.auth-form input[type="tel"] {
+  
 width: 100%;
 padding: 0.75rem;
 border: 1px solid #ccc;
@@ -207,4 +209,13 @@ background-color: #dc3545;
 }
 .logout-button:hover {
 background-color: #c82333 !important;
+}
+
+/* Clase unificada para los textos de ayuda en formularios */
+.form-text-help {
+    display: block;
+    margin-top: 0.5rem;
+    font-size: 0.85em; /* Ligeramente más grande para mejor legibilidad */
+    color: #6c757d;   /* Un gris sutil */
+    line-height: 1.4;
 }

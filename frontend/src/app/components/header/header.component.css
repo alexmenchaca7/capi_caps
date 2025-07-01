@@ -18,8 +18,31 @@ header h1 a {
 
 nav {
   display: flex;
-  gap: 15px;
+  gap: 20px;
   align-items: center;
+}
+
+.user-actions {
+    display: flex;
+    align-items: center;
+    gap: 15px; /* Espacio entre el nombre y el botón de logout */
+    margin-left: auto; /* Empuja esta sección a la derecha */
+}
+
+/* Estilo para el nuevo enlace de perfil */
+.perfil-link {
+    color: #fff;
+    text-decoration: none;
+    padding: 8px 12px;
+    border-radius: 5px;
+    transition: background-color 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px; /* Espacio entre el icono y el nombre */
+}
+
+.perfil-link:hover {
+    background-color: rgba(255, 255, 255, 0.2);
 }
 
 nav a, nav button {

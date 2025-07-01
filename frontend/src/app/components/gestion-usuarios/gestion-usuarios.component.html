@@ -1,0 +1,85 @@
+<app-header></app-header>
+
+<div class="gestion-container">
+  <div class="header">
+    <h2>Gestión de Usuarios</h2>
+    <button class="boton-nuevo" (click)="abrirModalParaCrear()">
+      <i class="fa-solid fa-plus"></i> Nuevo Usuario
+    </button>
+  </div>
+
+  <table class="table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Nombre</th>
+        <th>Usuario</th>
+        <th>Correo</th>
+        <th>Rol</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let usuario of usuarios">
+        <td>{{ usuario.id }}</td>
+        <td>{{ usuario.nombre }} {{ usuario.apellido }}</td>
+        <td>{{ usuario.username }}</td>
+        <td>{{ usuario.correo }}</td>
+        <td>{{ usuario.rol }}</td>
+        <td class="acciones">
+          <button (click)="abrirModalParaEditar(usuario)" class="btn-editar">Editar</button>
+          <button (click)="eliminarUsuario(usuario.id)" class="btn-eliminar">Eliminar</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="modal" *ngIf="mostrarModal">
+  <div class="modal-contenido">
+    <h3>{{ esEdicion ? 'Editar' : 'Crear' }} Usuario</h3>
+
+    <div *ngIf="mensajeExito" class="mensaje-exito">{{ mensajeExito }}</div>
+    <div *ngIf="mensajeError" class="mensaje-error">{{ mensajeError }}</div>
+    
+    <form (ngSubmit)="guardarUsuario()" #usuarioForm="ngForm" [hidden]="mensajeExito">
+      <div class="form-group">
+        <label>Nombre:</label>
+        <input type="text" [(ngModel)]="usuarioSeleccionado.nombre" name="nombre" required>
+      </div>
+      <div class="form-group">
+        <label>Apellido:</label>
+        <input type="text" [(ngModel)]="usuarioSeleccionado.apellido" name="apellido">
+      </div>
+      <div class="form-group">
+        <label>Username:</label>
+        <input type="text" [(ngModel)]="usuarioSeleccionado.username" name="username" required>
+      </div>
+      <div class="form-group">
+        <label>Correo:</label>
+        <input type="email" [(ngModel)]="usuarioSeleccionado.correo" name="correo" required email [readonly]="esEdicion">
+        <small class="form-text" *ngIf="esEdicion">El correo electrónico no se puede modificar.</small>
+      </div>
+       <div class="form-group">
+        <label>Teléfono:</label>
+        <input type="text" [(ngModel)]="usuarioSeleccionado.telefono" name="telefono">
+      </div>
+      <div class="form-group">
+        <label>Rol:</label>
+        <select [(ngModel)]="usuarioSeleccionado.rol" name="rol" required>
+          <option value="cliente">Cliente</option>
+          <option value="administrador">Administrador</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Contraseña:</label>
+        <input type="password" [(ngModel)]="usuarioSeleccionado.contrasena" name="contrasena" [required]="!esEdicion" placeholder="{{ esEdicion ? 'Dejar en blanco para no cambiar' : '' }}">
+        <small class="form-text">La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula y un número.</small>
+      </div>
+      <div class="modal-acciones">
+        <button type="submit" [disabled]="usuarioForm.invalid" class="btn-guardar">Guardar</button>
+        <button type="button" (click)="cerrarModal()" class="btn-cancelar">Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>

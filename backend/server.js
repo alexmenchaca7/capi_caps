@@ -28,8 +28,8 @@ const upload = multer({ storage: storage });
 // --- INICIO DE LA CORRECCIÓN DE CORS ---
 const corsOptions = {
     origin: 'http://localhost:4200',
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'], // 'PATCH' AÑADIDO
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-user-id'], // 'x-user-id' AÑADIDO
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'], 
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-user-id'],
     credentials: true,
     optionsSuccessStatus: 200
 };
@@ -83,10 +83,30 @@ function requireAuth(req, res, next) {
     next();
 }
 
+// --- Middleware de administrador ---
+async function requireAdmin(req, res, next) {
+    const userId = req.headers['x-user-id'];
+    if (!userId) {
+        return res.status(401).json({ message: 'Autenticación requerida.' });
+    }
+
+    try {
+        const [users] = await pool.query('SELECT rol FROM usuarios WHERE id = ?', [userId]);
+        if (users.length === 0 || users[0].rol !== 'administrador') {
+            return res.status(403).json({ message: 'Acceso denegado. Se requiere rol de administrador.' });
+        }
+        req.userId = parseInt(userId);
+        next();
+    } catch (error) {
+        console.error('Error en middleware de administrador:', error);
+        res.status(500).json({ message: 'Error interno del servidor.' });
+    }
+}
+
 
 // --- RUTAS API ---  //
 
-// --- RUTAS DE AUTENTICACIÓN SIMPLIFICADAS ---
+// --- RUTAS DE AUTENTICACIÓN ---
 app.post('/api/auth/registro', async (req, res) => {
   console.log('POST /api/auth/registro - Recibido:', req.body);
   const { nombre, apellido, username, correo, telefono, contrasena } = req.body;
@@ -108,28 +128,22 @@ app.post('/api/auth/registro', async (req, res) => {
   }
 
   try {
-    // Verificar si el correo o username ya existen
-    const [usuariosExistentes] = await pool.query(
-      'SELECT id FROM usuarios WHERE correo = ? OR username = ?',
-      [correo, username]
+    // Verificar si el correo/username/telefono ya existen
+    const [existingUsers] = await pool.query(
+        'SELECT username, correo, telefono FROM usuarios WHERE username = ? OR correo = ? OR (telefono = ? AND telefono IS NOT NULL)',
+        [username, correo, telefono]
     );
-    if (usuariosExistentes.length > 0) {
-      // Determinar qué campo está duplicado para un mensaje más específico (opcional)
-      const existingUser = usuariosExistentes[0]; // Asumimos que la query podría devolver más si ambos coinciden con diferentes usuarios
-      const isCorreoDup = existingUser.correo === correo; // Esto es una simplificación, la query ya previene esto si son diferentes usuarios
-      const isUsernameDup = existingUser.username === username; // Simplificación
-      // Mejor: consultar por separado o analizar el resultado de la query combinada
-      const [correoCheck] = await pool.query('SELECT id FROM usuarios WHERE correo = ?', [correo]);
-      if (correoCheck.length > 0) {
-          return res.status(409).json({ message: 'El correo electrónico ya está registrado.' });
-      }
-      const [usernameCheck] = await pool.query('SELECT id FROM usuarios WHERE username = ?', [username]);
-      if (usernameCheck.length > 0) {
-          return res.status(409).json({ message: 'El nombre de usuario ya está en uso.' });
-      }
-      // Si llegamos aquí después de las verificaciones individuales, algo es raro, pero el OR inicial debería haberlo capturado.
-      // Mantenemos un mensaje genérico si la lógica OR es suficiente.
-      // return res.status(409).json({ message: 'El correo electrónico o nombre de usuario ya está registrado.' });
+    
+    if (existingUsers.length > 0) {
+        if (existingUsers.some(u => u.username === username)) {
+            return res.status(409).json({ message: 'El nombre de usuario ya está en uso.' });
+        }
+        if (existingUsers.some(u => u.correo === correo)) {
+            return res.status(409).json({ message: 'El correo electrónico ya está registrado.' });
+        }
+        if (telefono && existingUsers.some(u => u.telefono === telefono)) {
+            return res.status(409).json({ message: 'El número de teléfono ya está registrado.' });
+        }
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -245,7 +259,7 @@ app.post('/api/auth/recuperar-simple', async (req, res) => {
   }
 });
 
-// Endpoint "actualizar-contrasena-admin" (sin cambios respecto a tu versión, es conceptual)
+// Endpoint "actualizar-contrasena-admin"
 app.put('/api/auth/actualizar-contrasena-admin/:idUsuarioAModificar', async (req, res) => {
     const { idUsuarioAModificar } = req.params;
     const { nuevaContrasena, correoAdmin /*, contrasenaAdmin */ } = req.body;
@@ -542,6 +556,241 @@ app.delete('/api/carrito', requireAuth, async (req, res) => {
   }
 });
 
+
+// Obtener todos los usuarios
+app.get('/api/usuarios', requireAdmin, async (req, res) => {
+    try {
+        const [usuarios] = await pool.query('SELECT id, nombre, apellido, username, correo, telefono, rol, fecha_registro FROM usuarios');
+        res.json(usuarios);
+    } catch (error) {
+        console.error('Error al obtener usuarios:', error);
+        res.status(500).json({ message: 'Error interno del servidor al obtener usuarios.' });
+    }
+});
+
+// Obtener un usuario por ID
+app.get('/api/usuarios/:id', requireAdmin, async (req, res) => {
+    const { id } = req.params;
+    try {
+        const [usuarios] = await pool.query('SELECT id, nombre, apellido, username, correo, telefono, rol FROM usuarios WHERE id = ?', [id]);
+        if (usuarios.length === 0) {
+            return res.status(404).json({ message: 'Usuario no encontrado.' });
+        }
+        res.json(usuarios[0]);
+    } catch (error) {
+        console.error(`Error al obtener usuario ${id}:`, error);
+        res.status(500).json({ message: 'Error interno del servidor.' });
+    }
+});
+
+// Crear un nuevo usuario
+app.post('/api/usuarios', requireAdmin, async (req, res) => {
+    const { nombre, apellido, username, correo, telefono, contrasena, rol } = req.body;
+
+    if (!nombre || !username || !correo || !contrasena || !rol) {
+        return res.status(400).json({ message: 'Nombre, username, correo, contraseña y rol son requeridos.' });
+    }
+    if (!validarContrasena(contrasena)) {
+        return res.status(400).json({ message: 'La nueva contraseña no cumple los requisitos.' });
+    }
+
+    try {
+        // ---- VALIDACIÓN DE UNICIDAD ----
+        const [existingUsers] = await pool.query(
+            'SELECT username, correo, telefono FROM usuarios WHERE username = ? OR correo = ? OR (telefono = ? AND telefono IS NOT NULL)',
+            [username, correo, telefono]
+        );
+
+        if (existingUsers.length > 0) {
+            if (existingUsers.some(u => u.username === username)) {
+                return res.status(409).json({ message: 'El nombre de usuario ya está en uso.' });
+            }
+            if (existingUsers.some(u => u.correo === correo)) {
+                return res.status(409).json({ message: 'El correo electrónico ya está registrado.' });
+            }
+            if (telefono && existingUsers.some(u => u.telefono === telefono)) {
+                return res.status(409).json({ message: 'El número de teléfono ya está registrado.' });
+            }
+        }
+        // ---- FIN DE VALIDACIÓN ----
+
+        const salt = await bcrypt.genSalt(10);
+        const contrasenaHasheada = await bcrypt.hash(contrasena, salt);
+
+        const [resultado] = await pool.query(
+            'INSERT INTO usuarios (nombre, apellido, username, correo, telefono, contrasena, rol) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [nombre, apellido, username, correo, telefono || null, contrasenaHasheada, rol]
+        );
+        res.status(201).json({ message: 'Usuario creado exitosamente.', usuarioId: resultado.insertId });
+
+    } catch (error) {
+        console.error('Error al crear usuario por admin:', error);
+        res.status(500).json({ message: 'Error interno del servidor.' });
+    }
+});
+
+// Actualizar un usuario
+app.put('/api/usuarios/:id', requireAdmin, async (req, res) => {
+    const { id } = req.params;
+    // El correo no se puede editar y se omite
+    const { nombre, apellido, username, telefono, rol, contrasena } = req.body;
+
+    if (!nombre || !username || !rol) {
+        return res.status(400).json({ message: 'Nombre, nombre de usuario y rol son requeridos.' });
+    }
+
+    try {
+        // --- INICIO DE LA VALIDACIÓN ---
+        // 1. Buscamos conflictos de 'username' y 'telefono' excluyendo al usuario actual.
+        const [conflicts] = await pool.query(
+            'SELECT username, telefono FROM usuarios WHERE (username = ? OR (telefono = ? AND telefono IS NOT NULL)) AND id != ?',
+            [username, telefono, id]
+        );
+
+        // 2. Si se encontraron conflictos, determinamos cuál fue y devolvemos un error específico.
+        if (conflicts.length > 0) {
+            if (conflicts[0].username === username) {
+                return res.status(409).json({ message: 'El nombre de usuario ya está en uso por otra cuenta.' });
+            }
+            if (telefono && conflicts[0].telefono === telefono) {
+                return res.status(409).json({ message: 'El número de teléfono ya está registrado en otra cuenta.' });
+            }
+        }
+        // --- FIN DE LA VALIDACIÓN ---
+
+
+        // 3. Si no hay conflictos, procedemos a actualizar los datos.
+        let query = 'UPDATE usuarios SET nombre = ?, apellido = ?, username = ?, telefono = ?, rol = ?';
+        const params = [nombre, apellido || null, username, telefono || null, rol];
+
+        if (contrasena) {
+            if (!validarContrasena(contrasena)) {
+                return res.status(400).json({ message: 'La nueva contraseña no cumple los requisitos.' });
+            }
+            const salt = await bcrypt.genSalt(10);
+            const contrasenaHasheada = await bcrypt.hash(contrasena, salt);
+            query += ', contrasena = ?';
+            params.push(contrasenaHasheada);
+        }
+
+        query += ' WHERE id = ?';
+        params.push(id);
+
+        const [resultado] = await pool.query(query, params);
+
+        if (resultado.affectedRows === 0) {
+            return res.status(404).json({ message: 'Usuario no encontrado.' });
+        }
+        
+        res.json({ message: 'Usuario actualizado exitosamente.' });
+
+    } catch (error) {
+        // Este bloque ahora solo se activará por errores inesperados de la base de datos.
+        console.error(`Error al actualizar usuario ${id}:`, error);
+        res.status(500).json({ message: 'Error interno del servidor.' });
+    }
+});
+
+// Eliminar un usuario
+app.delete('/api/usuarios/:id', requireAdmin, async (req, res) => {
+    const { id } = req.params;
+    // Evitar que un admin se elimine a sí mismo
+    if (parseInt(id, 10) === req.userId) {
+        return res.status(400).json({ message: 'No puedes eliminar tu propia cuenta de administrador.' });
+    }
+
+    try {
+        const [resultado] = await pool.query('DELETE FROM usuarios WHERE id = ?', [id]);
+        if (resultado.affectedRows === 0) {
+            return res.status(404).json({ message: 'Usuario no encontrado.' });
+        }
+        res.json({ message: 'Usuario eliminado exitosamente.' });
+    } catch (error) {
+        console.error(`Error al eliminar usuario ${id}:`, error);
+        res.status(500).json({ message: 'Error interno del servidor.' });
+    }
+});
+
+
+// Obtener los datos del perfil del usuario actual
+app.get('/api/perfil', requireAuth, async (req, res) => {
+    try {
+        const [usuarios] = await pool.query(
+            'SELECT id, nombre, apellido, username, correo, telefono FROM usuarios WHERE id = ?', 
+            [req.userId]
+        );
+
+        if (usuarios.length === 0) {
+            return res.status(404).json({ message: 'Usuario no encontrado.' });
+        }
+        res.json(usuarios[0]);
+    } catch (error) {
+        console.error('Error al obtener perfil:', error);
+        res.status(500).json({ message: 'Error interno del servidor.' });
+    }
+});
+
+// Actualizar el perfil del usuario actual
+app.put('/api/perfil', requireAuth, async (req, res) => {
+    // El correo no se incluye aquí, por lo que no se puede editar
+    const { nombre, apellido, username, telefono, contrasena } = req.body;
+
+    if (!nombre || !username) {
+        return res.status(400).json({ message: 'Nombre y nombre de usuario son requeridos.' });
+    }
+
+    try {
+        // --- 1. VALIDACIÓN DE UNICIDAD ---
+        // Buscamos si el nuevo 'username' O 'telefono' ya existen en la base de datos,
+        // pero EXCLUYENDO el registro del propio usuario que está haciendo la petición (id != ?).
+        const [existing] = await pool.query(
+            'SELECT id, username, telefono FROM usuarios WHERE (username = ? OR (telefono = ? AND telefono IS NOT NULL)) AND id != ?',
+            [username, telefono, req.userId]
+        );
+
+        // Si la consulta anterior encontró algo, significa que hay un conflicto.
+        if (existing.length > 0) {
+            // Verificamos específicamente qué campo está duplicado para dar un mensaje claro.
+            if (existing[0].username === username) {
+                return res.status(409).json({ message: 'El nombre de usuario ya está en uso por otra cuenta.' });
+            }
+            if (telefono && existing[0].telefono === telefono) {
+                return res.status(409).json({ message: 'El número de teléfono ya está registrado en otra cuenta.' });
+            }
+        }
+        // --- FIN DE LA VALIDACIÓN ---
+
+
+        // --- 2. ACTUALIZACIÓN DE DATOS (si no hubo errores) ---
+        let query = 'UPDATE usuarios SET nombre = ?, apellido = ?, username = ?, telefono = ?';
+        const params = [nombre, apellido || null, username, telefono || null];
+
+        if (contrasena) {
+            if (!validarContrasena(contrasena)) {
+                return res.status(400).json({ message: 'La nueva contraseña no cumple los requisitos.' });
+            }
+            const salt = await bcrypt.genSalt(10);
+            const contrasenaHasheada = await bcrypt.hash(contrasena, salt);
+            query += ', contrasena = ?';
+            params.push(contrasenaHasheada);
+        }
+        
+        query += ' WHERE id = ?';
+        params.push(req.userId);
+
+        await pool.query(query, params);
+        
+        // Devolvemos el usuario actualizado para refrescar los datos en el frontend
+        const [usuarios] = await pool.query('SELECT * FROM usuarios WHERE id = ?', [req.userId]);
+        const { contrasena: _, ...usuarioActualizado } = usuarios[0];
+
+        res.json({ message: 'Perfil actualizado exitosamente.', usuario: usuarioActualizado });
+
+    } catch (error) {
+        console.error(`Error al actualizar perfil para usuario ${req.userId}:`, error);
+        res.status(500).json({ message: 'Error interno del servidor al actualizar el perfil.' });
+    }
+});
 
 // Manejador para rutas no encontradas (404)
 app.use((req, res, next) => {

@@ -16,7 +16,7 @@ export interface AuthResponseSimple { // Interfaz para la respuesta del backend
   providedIn: 'root'
 })
 export class AuthService {
-  private apiUrl = 'http://localhost:8080/api/auth';
+  private apiUrl = 'http://localhost:8080/api';
   private usuarioKey = 'currentUserEcommerce'; // Cambiar key para evitar conflictos si tienes otra app
 
   private currentUserSubject: BehaviorSubject<Usuario | null>;
@@ -59,13 +59,13 @@ export class AuthService {
   }
 
   registro(datosUsuario: any): Observable<AuthResponseSimple> {
-    return this.http.post<AuthResponseSimple>(`${this.apiUrl}/registro`, datosUsuario).pipe(
+    return this.http.post<AuthResponseSimple>(`${this.apiUrl}/auth/registro`, datosUsuario).pipe(
       catchError(this.handleError)
     );
   }
 
   login(credenciales: { loginIdentifier: string, contrasena: string }): Observable<AuthResponseSimple> {
-    return this.http.post<AuthResponseSimple>(`${this.apiUrl}/login`, credenciales).pipe(
+    return this.http.post<AuthResponseSimple>(`${this.apiUrl}/auth/login`, credenciales).pipe(
       tap((response) => {
         if (response.usuario && isPlatformBrowser(this.platformId)) {
           // Asegurar que el usuario tenga ID
@@ -110,6 +110,22 @@ export class AuthService {
     return this.http.put(`${this.apiUrl}/actualizar-contrasena-admin/${idUsuarioAModificar}`, payload)
       .pipe(catchError(this.handleError));
   }
+
+  getPerfil(): Observable<Usuario> {
+    return this.http.get<Usuario>(`${this.apiUrl}/perfil`);
+  }
+
+  updatePerfil(data: any): Observable<{ message: string, usuario: Usuario }> {
+    return this.http.put<{ message: string, usuario: Usuario }>(`${this.apiUrl}/perfil`, data).pipe(
+      tap(response => {
+        // Al actualizar, también refrescamos los datos del usuario en toda la app
+        const usuarioActualizado = response.usuario;
+        localStorage.setItem('currentUser', JSON.stringify(usuarioActualizado));
+        this.currentUserSubject.next(usuarioActualizado);
+      })
+    );
+  }
+
   
   private handleError(error: HttpErrorResponse) {
     let errorMessage = 'Ocurrió un error.';

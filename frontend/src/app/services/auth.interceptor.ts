@@ -9,15 +9,21 @@ export class AuthInterceptor implements HttpInterceptor {
   constructor(private authService: AuthService) {}
 
   intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
-    const token = this.authService.getToken();
+    // Obtenemos el objeto del usuario actual desde el servicio
+    const currentUser = this.authService.currentUserValue;
 
-    if (token) {
+    // Si hay un usuario logueado y tiene un ID
+    if (currentUser && currentUser.id) {
+      // Clonamos la petición para añadirle la nueva cabecera
       const cloned = req.clone({
-        headers: req.headers.set('Authorization', `Bearer ${token}`)
+        // Establecemos la cabecera 'x-user-id', que es la que el backend espera
+        headers: req.headers.set('x-user-id', currentUser.id.toString())
       });
+      // Dejamos que la petición clonada continúe su camino
       return next.handle(cloned);
     }
 
+    // Si no hay usuario, la petición continúa sin modificarse
     return next.handle(req);
   }
 }

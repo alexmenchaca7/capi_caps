@@ -6,21 +6,29 @@
     </a>
   </h1>
   <nav>
-    <a routerLink="/productos" routerLinkActive="active-link">Productos</a>
+    <!-- Mostrar Productos solo si no es admin -->
+    <a *ngIf="!isAdmin()" routerLink="/productos" routerLinkActive="active-link">Productos</a>
 
-    <!-- Mostrar Carrito solo si está logueado -->
-    <a *ngIf="isLoggedIn()" routerLink="/carrito" routerLinkActive="active-link">Carrito</a>
+    <!-- Mostrar Carrito solo si está logueado y no es admin -->
+    <a *ngIf="isLoggedIn() && !isAdmin()" routerLink="/carrito" routerLinkActive="active-link">Carrito</a>
 
     <!-- Mostrar Inventario solo si es Administrador -->
     <a *ngIf="isAdmin()" routerLink="/inventario" routerLinkActive="active-link">Inventario</a>
 
-    <!-- Sección de Autenticación -->
-    <ng-container *ngIf="currentUser; else loggedOutLinks">
-      <button (click)="logout()" class="auth-button logout-button">Cerrar Sesión</button>
-    </ng-container>
-    <ng-template #loggedOutLinks>
-      <a routerLink="/login" routerLinkActive="active-link" class="auth-button login-button">Login</a>
-      <a routerLink="/registro" routerLinkActive="active-link" class="auth-button register-button">Registro</a>
-    </ng-template>
+    <!-- Mostrar Gestión de Usuarios solo si es Administrador -->
+    <a *ngIf="isAdmin()" routerLink="/gestion-usuarios" routerLinkActive="active-link">Usuarios</a>
+
+    <div class="user-actions">
+      <ng-container *ngIf="currentUser; else loggedOutLinks">
+        <a routerLink="/perfil" class="perfil-link" title="Editar mi perfil">
+          <i class="fa-solid fa-user-pen"></i> {{ currentUser.username }}
+        </a>
+        <button (click)="logout()" class="auth-button logout-button">Cerrar Sesión</button>
+      </ng-container>
+      <ng-template #loggedOutLinks>
+        <a routerLink="/login" routerLinkActive="active-link" class="auth-button login-button">Login</a>
+        <a routerLink="/registro" routerLinkActive="active-link" class="auth-button register-button">Registro</a>
+      </ng-template>
+    </div>
   </nav>
 </header>

@@ -77,13 +77,9 @@
             <small *ngIf="contrasenaRegInput.errors?.['required']">La contraseña es requerida.</small>
             <small *ngIf="contrasenaRegInput.errors?.['minlength']">Mínimo 8 caracteres.</small>
         </div>
-        <div class="password-requirements">
-            <small>Debe contener al menos:</small>
-            <small>• 8 caracteres</small>
-            <small>• 1 letra mayúscula</small>
-            <small>• 1 letra minúscula</small>
-            <small>• 1 número</small>
-        </div>
+        <small class="form-text-help">
+          Debe contener al menos 8 caracteres, una mayúscula, una minúscula y un número.
+        </small>
     </div>
 
     <button type="submit" [disabled]="registroForm.invalid || isLoading" class="auth-button">

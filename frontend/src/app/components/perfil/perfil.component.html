@@ -1,0 +1,62 @@
+<app-header></app-header>
+
+<div class="perfil-container">
+  <h2>Editar Mi Perfil</h2>
+  <p>Aquí puedes actualizar la información de tu cuenta.</p>
+
+  <div *ngIf="mensajeExito" class="mensaje-exito">{{ mensajeExito }}</div>
+  <div *ngIf="mensajeError" class="mensaje-error">{{ mensajeError }}</div>
+
+  <form (ngSubmit)="onSubmit(perfilForm)" #perfilForm="ngForm" class="perfil-form" *ngIf="usuario.id">
+    <div class="form-row">
+      <div class="form-group">
+        <label for="nombre">Nombre</label>
+        <input type="text" id="nombre" name="nombre" [(ngModel)]="usuario.nombre" required #nombre="ngModel">
+        <div *ngIf="nombre.invalid && (nombre.dirty || nombre.touched)" class="error-input">
+          El nombre es requerido.
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="apellido">Apellido</label>
+        <input type="text" id="apellido" name="apellido" [(ngModel)]="usuario.apellido">
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label for="username">Nombre de Usuario</label>
+        <input type="text" id="username" name="username" [(ngModel)]="usuario.username" required #username="ngModel">
+        <div *ngIf="username.invalid && (username.dirty || username.touched)" class="error-input">
+          El nombre de usuario es requerido.
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="correo">Correo Electrónico</label>
+        <input type="email" id="correo" name="correo" [(ngModel)]="usuario.correo" required email [readonly]="true" #correo="ngModel">
+        <small class="form-text" *ngIf="correo.pristine">El correo electrónico no se puede modificar.</small>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="telefono">Teléfono</label>
+      <input type="tel" id="telefono" name="telefono" [(ngModel)]="usuario.telefono">
+    </div>
+    
+    <hr>
+    
+    <div class="form-group">
+        <label for="contrasena">Nueva Contraseña</label>
+        <input type="password" id="contrasena" name="contrasena" [(ngModel)]="usuario.contrasena" 
+               placeholder="Dejar en blanco para no cambiar"
+               minlength="8" #contrasena="ngModel">
+        <small class="form-text">La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula y un número.</small>
+        <div *ngIf="contrasena.value && contrasena.invalid && (contrasena.dirty || contrasena.touched)" class="error-input">
+          La contraseña debe tener al menos 8 caracteres.
+        </div>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn-guardar" [disabled]="perfilForm.invalid">Guardar Cambios</button>
+    </div>
+  </form>
+</div>
