@@ -18,6 +18,12 @@
     <!-- Mostrar Gestión de Usuarios solo si es Administrador -->
     <a *ngIf="isAdmin()" routerLink="/gestion-usuarios" routerLinkActive="active-link">Usuarios</a>
 
+    <!-- Enlace para usuarios normales -->
+    <a *ngIf="isLoggedIn() && !isAdmin()" routerLink="/mis-compras" routerLinkActive="active-link">Mis Compras</a>
+
+    <!-- Enlace para administradores -->
+    <a *ngIf="isLoggedIn() && isAdmin()" routerLink="/admin/pedidos" routerLinkActive="active-link">Ver Pedidos</a>
+
     <div class="user-actions">
       <ng-container *ngIf="currentUser; else loggedOutLinks">
         <a routerLink="/perfil" class="perfil-link" title="Editar mi perfil">

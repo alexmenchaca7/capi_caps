@@ -1,55 +1,64 @@
+// src/app/components/carrito/carrito.component.ts
+
 import { Component, OnInit, OnDestroy, ChangeDetectorRef, Inject, PLATFORM_ID, NgZone } from '@angular/core';
-import { isPlatformBrowser, CommonModule } from '@angular/common';
-import { CarritoService } from '../../services/carrito.service';
-import { FormsModule } from '@angular/forms';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { Router } from '@angular/router';
-import { HeaderComponent } from '../header/header.component';
+import { FormsModule } from '@angular/forms'; // Necesario para ngModel
+import { Subscription, lastValueFrom } from 'rxjs';
+
+import { CarritoService } from '../../services/carrito.service';
 import { CarritoItem } from '../../models/carrito-item';
-import { forkJoin, of, lastValueFrom, Subscription } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { HeaderComponent } from '../header/header.component'; // Importar Header
 
 declare var paypal: any;
 
+// Interface para los detalles de la compra en el modal
 interface DetallesCompraParaModal {
   transactionId: string;
   totalPagado: number;
   itemsComprados: CarritoItem[];
   reciboXML: string;
-  fallosStock?: { productoNombre: string; mensajeError?: string }[];
 }
 
 @Component({
   selector: 'app-carrito',
   standalone: true,
-  imports: [CommonModule, FormsModule, HeaderComponent],
+  imports: [
+    CommonModule, 
+    FormsModule, // Añadir FormsModule
+    HeaderComponent // Añadir HeaderComponent
+  ],
   templateUrl: './carrito.component.html',
   styleUrls: ['./carrito.component.css']
 })
 export class CarritoComponent implements OnInit, OnDestroy {
   public carrito: CarritoItem[] = [];
-  private carritoSubscription: Subscription | undefined;
+  private carritoSubscription!: Subscription;
 
-  // Propiedades para PayPal y el modal
+  // Propiedades de estado y PayPal
   private paypalButtonRendered = false;
   private paypalScriptLoading = false;
   public errorPayPalInit = false;
-  public mostrarModalConfirmacion: boolean = false;
+
+  // Propiedades del Modal
+  public mostrarModalConfirmacion = false;
   public detallesCompra: DetallesCompraParaModal | null = null;
 
   constructor(
     public carritoService: CarritoService,
-    private router: Router,
     private cdr: ChangeDetectorRef,
-    @Inject(PLATFORM_ID) private platformId: Object,
-    private zone: NgZone
+    private router: Router,
+    private zone: NgZone,
+    @Inject(PLATFORM_ID) private platformId: Object
   ) {}
 
-  ngOnInit() {
-    this.carritoSubscription = this.carritoService.carrito$.subscribe(carritoItems => {
-      this.carrito = carritoItems;
+  ngOnInit(): void {
+    this.carritoSubscription = this.carritoService.carrito$.subscribe(items => {
+      this.carrito = items;
       this.cdr.detectChanges();
       if (isPlatformBrowser(this.platformId)) {
-        this.renderPayPalButton();
+        // Usamos setTimeout para asegurar que el DOM esté listo
+        setTimeout(() => this.renderPayPalButton(), 0);
       }
     });
   }
@@ -59,67 +68,34 @@ export class CarritoComponent implements OnInit, OnDestroy {
       this.carritoSubscription.unsubscribe();
     }
   }
+  
+  private loadPayPalScript() {
+    if (!isPlatformBrowser(this.platformId) || this.paypalScriptLoading || typeof paypal !== 'undefined') return;
 
-  // ==================================================================
-  // ===== INICIO DE LA CORRECCIÓN CON ENFOQUE INMUTABLE ======
-  // ==================================================================
-  actualizarCantidad(carritoId: number, nuevaCantidad: number | null) {
-    if (nuevaCantidad === null || isNaN(nuevaCantidad)) {
-      return;
-    }
-  
-    const itemIndex = this.carrito.findIndex(p => p.carritoId === carritoId);
-    if (itemIndex === -1) return;
-  
-    const item = this.carrito[itemIndex];
-  
-    // Si la cantidad nueva supera el stock, mostramos alerta y revertimos
-    if (nuevaCantidad > item.stock) {
-      alert(`Lo sentimos, solo quedan ${item.stock} unidades de "${item.nombre}". No puedes agregar más.`);
-  
-      // CREAMOS UN NUEVO ARRAY: Esta es la forma más robusta de notificar a Angular de un cambio.
-      this.carrito = this.carrito.map((cartItem, index) => {
-        if (index === itemIndex) {
-          // Creamos un nuevo objeto para el item modificado
-          return { ...cartItem, cantidadEnCarrito: item.stock };
-        }
-        // Devolvemos los otros items sin cambios
-        return cartItem;
-      });
-  
-      this.renderPayPalButton(); // Actualizamos el total para PayPal
-      return;
-    }
-  
-    // Si la cantidad es válida, simplemente la actualizamos en el modelo local
-    if (item.cantidadEnCarrito !== nuevaCantidad) {
-      const cantidadFinal = Math.max(1, nuevaCantidad);
-      if (item.cantidadEnCarrito !== cantidadFinal) {
-        item.cantidadEnCarrito = cantidadFinal;
-        this.renderPayPalButton();
-      }
-    }
-  }
-  // ================================================================
-  // ========= FIN DE LA CORRECCIÓN CON ENFOQUE INMUTABLE ===========
-  // ================================================================
-
-  calcularSubtotal(): number {
-    return this.carrito.reduce((sub, prod) => sub + (Number(prod.precio) ?? 0) * (prod.cantidadEnCarrito ?? 0), 0);
-  }
-  calcularIVA(): number { return this.calcularSubtotal() * 0.16; }
-  calcularTotal(): number { return this.calcularSubtotal() + this.calcularIVA(); }
-  
-  eliminarProducto(carritoId: number) {
-    this.carritoService.eliminarProducto(carritoId);
+    this.paypalScriptLoading = true;
+    const script = document.createElement('script');
+    script.src = `https://www.paypal.com/sdk/js?client-id=ARN4q4xSLo9k19e845bV04QIgO1_gELqDi913C7UyJppQdNYZ_Wug1AIkttyJUCBoqwIIhCFlVLyf3KS&currency=MXN&commit=true`;
+    script.onload = () => {
+      this.paypalScriptLoading = false;
+      this.renderPayPalButton();
+    };
+    script.onerror = () => {
+      this.paypalScriptLoading = false;
+      this.errorPayPalInit = true;
+      console.error("ERROR: No se pudo cargar el script de PayPal.");
+      this.cdr.detectChanges();
+    };
+    document.body.appendChild(script);
   }
 
   private renderPayPalButton() {
     if (!isPlatformBrowser(this.platformId)) return;
     
+    const container = document.getElementById('paypal-button-container');
+    if (!container) return;
+
     if (this.carrito.length === 0 || this.mostrarModalConfirmacion) {
-        const container = document.getElementById('paypal-button-container');
-        if (container) container.innerHTML = '';
+        container.innerHTML = '';
         this.paypalButtonRendered = false;
         return;
     }
@@ -129,9 +105,7 @@ export class CarritoComponent implements OnInit, OnDestroy {
         return;
     }
     
-    const container = document.getElementById('paypal-button-container');
-    if (!container) return;
-
+    // Lógica clave: Siempre limpiar el contenedor antes de renderizar para evitar conflictos.
     container.innerHTML = '';
     
     this.zone.run(() => {
@@ -163,30 +137,25 @@ export class CarritoComponent implements OnInit, OnDestroy {
                 const itemsComprados = [...this.carrito];
                 const totalPagado = this.calcularTotal();
 
-                const actualizacionesObservables = itemsComprados.map(item =>
-                  this.carritoService.actualizarInventario(item.producto_id, item.cantidadEnCarrito, 'restar').pipe(
-                    map(() => ({ success: true, productoNombre: item.nombre })),
-                    catchError(err => of({ success: false, productoNombre: item.nombre, mensajeError: err.error?.message || 'Error desconocido' }))
-                  )
-                );
-                const resultadosStock = await lastValueFrom(forkJoin(actualizacionesObservables));
-                const fallosStock = resultadosStock.filter(r => !r.success);
+                await lastValueFrom(this.carritoService.crearPedido(
+                  details.id,
+                  totalPagado,
+                  itemsComprados
+                ));
                 
                 const reciboXMLGenerado = this.generarReciboXMLConItems(itemsComprados, totalPagado, this.calcularIVAconItems(itemsComprados), details.id);
 
                 this.detallesCompra = {
-                  transactionId: details.id, totalPagado, itemsComprados, reciboXML: reciboXMLGenerado,
-                  fallosStock: fallosStock.length > 0 ? fallosStock : undefined
+                  transactionId: details.id, 
+                  totalPagado, 
+                  itemsComprados, 
+                  reciboXML: reciboXMLGenerado
                 };
-
-                if (fallosStock.length === 0) {
-                  this.carritoService.limpiarCarrito();
-                } else {
-                  alert('¡Atención! Tu pago fue exitoso, pero hubo un problema al reservar algunos productos. Por favor, contacta a soporte.');
-                }
+                
                 this.mostrarModalConfirmacion = true;
                 this.cdr.detectChanges();
-              } catch (err) {
+
+              } catch (err: any) {
                 console.error('Error crítico en el proceso de pago (onApprove):', err);
                 alert('Hubo un error al procesar tu pago. Por favor, intenta de nuevo.');
               }
@@ -197,46 +166,6 @@ export class CarritoComponent implements OnInit, OnDestroy {
     });
   }
 
-  private loadPayPalScript() {
-    if (this.paypalScriptLoading || typeof paypal !== 'undefined') return;
-
-    this.paypalScriptLoading = true;
-    const script = document.createElement('script');
-    script.src = `https://www.paypal.com/sdk/js?client-id=ARN4q4xSLo9k19e845bV04QIgO1_gELqDi913C7UyJppQdNYZ_Wug1AIkttyJUCBoqwIIhCFlVLyf3KS&currency=MXN&commit=true`;
-    script.onload = () => {
-      this.paypalScriptLoading = false;
-      this.renderPayPalButton();
-    };
-    script.onerror = () => {
-      this.paypalScriptLoading = false;
-      this.errorPayPalInit = true;
-      console.error("No se pudo cargar el script de PayPal.");
-    };
-    document.body.appendChild(script);
-  }
-
-  descargarReciboDelModal() {
-    if (!isPlatformBrowser(this.platformId) || !this.detallesCompra?.reciboXML) return;
-    const blob = new Blob([this.detallesCompra.reciboXML], { type: 'application/xml' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `recibo_${this.detallesCompra.transactionId}.xml`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(link.href);
-  }
-
-  irAProductos(): void {
-    this.router.navigate(['/productos']);
-  }
-
-  cerrarModalConfirmacionYRedirigir(): void {
-    this.mostrarModalConfirmacion = false;
-    this.detallesCompra = null;
-    this.router.navigate(['/productos']);
-  }
-  
   private generarReciboXMLConItems(items: CarritoItem[], total: number, iva: number, transactionId: string): string {
     const subtotal = total - iva;
     let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<recibo>\n`;
@@ -261,9 +190,76 @@ export class CarritoComponent implements OnInit, OnDestroy {
     return xml;
   }
 
-  private calcularIVAconItems(items: CarritoItem[]): number {
-    const subtotal = items.reduce((sub, prod) => sub + (Number(prod.precio) ?? 0) * (prod.cantidadEnCarrito ?? 0), 0);
+  cerrarModalConfirmacionYRedirigir(): void {
+    this.mostrarModalConfirmacion = false;
+    this.detallesCompra = null;
+    this.carritoService.limpiarCarrito();
+    this.router.navigate(['/productos']);
+  }
+  
+  descargarReciboDelModal(): void {
+    if (!this.detallesCompra) return;
+    const blob = new Blob([this.detallesCompra.reciboXML], { type: 'application/xml' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `recibo-${this.detallesCompra.transactionId}.xml`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  }
+
+  actualizarCantidad(carritoId: number, nuevaCantidad: number): void {
+    if (nuevaCantidad === null || isNaN(nuevaCantidad)) {
+      return;
+    }
+    
+    const item = this.carrito.find(p => p.carritoId === carritoId);
+    if (!item) return;
+
+    const cantidadFinal = Math.max(1, nuevaCantidad);
+
+    if (cantidadFinal > item.stock) {
+      alert(`Lo sentimos, solo quedan ${item.stock} unidades de "${item.nombre}".`);
+      item.cantidadEnCarrito = item.stock;
+    } else {
+      item.cantidadEnCarrito = cantidadFinal;
+    }
+    
+    this.carritoService.actualizarCantidad(item.producto_id, item.cantidadEnCarrito);
+    
+    setTimeout(() => this.renderPayPalButton(), 0);
+  }
+
+  eliminarProducto(carritoId: number): void {
+    if (confirm('¿Estás seguro de que quieres eliminar este producto del carrito?')) {
+      const item = this.carrito.find(p => p.carritoId === carritoId);
+      if (item) {
+        this.carritoService.eliminarProducto(item.producto_id);
+      }
+    }
+  }
+
+  irAProductos(): void {
+    this.router.navigate(['/productos']);
+  }
+
+  calcularSubtotal(): number {
+    return this.carrito.reduce((acc, item) => acc + (Number(item.precio) || 0) * item.cantidadEnCarrito, 0);
+  }
+
+  calcularIVA(): number {
+    return this.calcularSubtotal() * 0.16;
+  }
+
+  calcularIVAconItems(items: CarritoItem[]): number {
+    const subtotal = items.reduce((acc, item) => acc + (Number(item.precio) || 0) * item.cantidadEnCarrito, 0);
     return subtotal * 0.16;
+  }
+
+  calcularTotal(): number {
+    return this.calcularSubtotal() + this.calcularIVA();
   }
 
   private escapeXml(unsafe: string): string {

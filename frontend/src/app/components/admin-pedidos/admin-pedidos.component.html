@@ -1,0 +1,52 @@
+<app-header></app-header>
+
+<div class="gestion-container">
+  <div class="header">
+    <h2>Historial de Todos los Pedidos</h2>
+  </div>
+
+  <div *ngIf="isLoading" class="text-center p-5">
+    <div class="spinner-border" role="status">
+      <span class="visually-hidden">Cargando...</span>
+    </div>
+  </div>
+
+  <div *ngIf="error" class="mensaje-error">{{ error }}</div>
+
+  <div *ngIf="!isLoading && !error && pedidos.length === 0" class="mensaje-info">
+    No se ha realizado ninguna compra en la plataforma.
+  </div>
+
+  <table class="table" *ngIf="!isLoading && !error && pedidos.length > 0">
+    <thead>
+      <tr>
+        <th>ID Pedido</th>
+        <th>Correo Usuario</th>
+        <th>Fecha</th>
+        <th>Total</th>
+        <th>Productos</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let pedido of pedidos">
+        <td>#{{ pedido.id }}</td>
+        <td>{{ pedido.correo_usuario }}</td>
+        <td>{{ pedido.fecha_pedido | date:'dd/MM/yyyy HH:mm' }}</td>
+        <td>{{ pedido.total_pagado | currency:'MXN' }}</td>
+        <td>
+          <ul class="product-list">
+            <li *ngFor="let item of pedido.detalles_pedido">
+              {{ item.nombre }} (x{{ item.cantidadEnCarrito }})
+            </li>
+          </ul>
+        </td>
+        <td class="acciones">
+          <button (click)="descargar(pedido.id)" class="btn-ver">
+            Ver Recibo
+          </button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>

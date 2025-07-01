@@ -8,6 +8,8 @@ import { RecuperarContrasenaComponent } from './components/recuperar-contrasena/
 import { HomeComponent } from './components/home/home.component';
 import { GestionUsuariosComponent } from './components/gestion-usuarios/gestion-usuarios.component'; 
 import { PerfilComponent } from './components/perfil/perfil.component';
+import { HistorialPedidosComponent } from './components/historial-pedidos/historial-pedidos.component';
+import { AdminPedidosComponent } from './components/admin-pedidos/admin-pedidos.component';
 
 // Importar los guards
 import { authGuard } from './guards/auth.guard';
@@ -26,10 +28,12 @@ export const routes: Routes = [
   // Rutas que requieren estar logueado (cualquier rol)
   { path: 'carrito', component: CarritoComponent, canActivate: [authGuard] },
   { path: 'perfil', component: PerfilComponent, canActivate: [authGuard] },
+  { path: 'mis-compras', component: HistorialPedidosComponent, canActivate: [authGuard] }, 
 
   // Rutas que requieren ser administrador
   { path: 'inventario', component: InventarioComponent, canActivate: [adminGuard] }, // Requiere login Y rol admin
   { path: 'gestion-usuarios', component: GestionUsuariosComponent, canActivate: [adminGuard] },
+  { path: 'admin/pedidos', component: AdminPedidosComponent, canActivate: [adminGuard] },
 
 
   // Redirecciones

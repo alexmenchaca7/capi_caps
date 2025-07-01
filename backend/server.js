@@ -72,6 +72,41 @@ function validarContrasena(contrasena) {
     return true;
 }
 
+function generarReciboXML(pedidoId, pagoId, total, detalles) {
+    // Genera el detalle de los productos
+    const itemsXML = detalles.map(item => `
+        <Item>
+            <ProductoID>${item.producto_id}</ProductoID>
+            <Nombre>${item.nombre}</Nombre>
+            <Cantidad>${item.cantidadEnCarrito}</Cantidad>
+            <PrecioUnitario>${item.precio.toFixed(2)}</PrecioUnitario>
+        </Item>`).join('');
+
+    // Calcula el IVA (asumiendo 16% como ejemplo)
+    const subtotal = total / 1.16;
+    const iva = total - subtotal;
+
+    // Estructura completa del XML
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<Recibo>
+    <Encabezado>
+        <Tienda>CapiCaps</Tienda>
+        <PedidoID>${pedidoId}</PedidoID>
+        <TransaccionID>${pagoId}</TransaccionID>
+        <Fecha>${new Date().toISOString()}</Fecha>
+    </Encabezado>
+    <Cuerpo>
+        <Items>${itemsXML}
+        </Items>
+        <Totales>
+            <Subtotal>${subtotal.toFixed(2)}</Subtotal>
+            <IVA>${iva.toFixed(2)}</IVA>
+            <TotalPagado>${total.toFixed(2)}</TotalPagado>
+        </Totales>
+    </Cuerpo>
+</Recibo>`;
+}
+
 // --- Middleware de autenticación ---
 function requireAuth(req, res, next) {
     const userId = req.headers['x-user-id'];
@@ -456,105 +491,123 @@ app.get('/api/inventario', async (req, res) => {
   }
 });
 
-// Obtener el carrito de un usuario
-app.get('/api/carrito', requireAuth, async (req, res) => {
-    try {
-        const [carrito] = await pool.query(
-            'SELECT c.id as carritoId, c.cantidad as cantidadEnCarrito, p.id as producto_id, p.nombre, p.precio, p.imagen, p.cantidad as stock ' +
-            'FROM carrito c ' +
-            'JOIN productos p ON c.producto_id = p.id ' +
-            'WHERE c.usuario_id = ?',
-            [req.userId]
-        );
-        res.json(carrito);
-    } catch (error) {
-        console.error('Error al obtener carrito:', error);
-        res.status(500).json({ message: 'Error al obtener carrito' });
-    }
-});
-
-// Agregar un producto al carrito (usado por agregarProducto en el servicio)
-app.post('/api/carrito', requireAuth, async (req, res) => {
-    const { producto_id, cantidad } = req.body;
-    if (!producto_id || cantidad === undefined) {
-        return res.status(400).json({ message: 'producto_id y cantidad son requeridos' });
-    }
-
-    try {
-        const [existing] = await pool.query(
-            'SELECT id, cantidad FROM carrito WHERE usuario_id = ? AND producto_id = ?',
-            [req.userId, producto_id]
-        );
-
-        if (existing.length > 0) {
-            const newQuantity = existing[0].cantidad + cantidad;
-            await pool.query('UPDATE carrito SET cantidad = ? WHERE id = ?', [newQuantity, existing[0].id]);
-            res.json({ message: 'Cantidad actualizada en el carrito' });
-        } else {
-            await pool.query('INSERT INTO carrito (usuario_id, producto_id, cantidad) VALUES (?, ?, ?)', [req.userId, producto_id, cantidad]);
-            res.status(201).json({ message: 'Producto agregado al carrito' });
-        }
-    } catch (error) {
-        console.error('Error al agregar al carrito:', error);
-        res.status(500).json({ message: 'Error al agregar producto al carrito' });
-    }
-});
-
-// Actualizar cantidad y stock (usado por actualizarCantidad en el servicio)
-app.put('/api/carrito/actualizar-cantidad', requireAuth, async (req, res) => {
-    const { carritoId, nuevaCantidad } = req.body;
+// Crear un nuevo pedido
+app.post('/api/pedidos', requireAuth, async (req, res) => {
+    const { pago_id, detalles_pedido, total_pagado } = req.body;
     const usuario_id = req.userId;
 
-    if (!carritoId || nuevaCantidad === undefined || nuevaCantidad < 1) {
-        return res.status(400).json({ message: 'Se requieren el ID del ítem y una nueva cantidad válida.' });
+    if (!pago_id || !detalles_pedido || total_pagado === undefined) {
+        return res.status(400).json({ message: 'pago_id, detalles_pedido y total_pagado son requeridos.' });
     }
+    if (!Array.isArray(detalles_pedido) || detalles_pedido.length === 0) {
+        return res.status(400).json({ message: 'Los detalles del pedido deben ser un array con al menos un producto.' });
+    }
+    
+    const connection = await pool.getConnection();
 
     try {
-        const [result] = await pool.query(
-            'UPDATE carrito SET cantidad = ? WHERE id = ? AND usuario_id = ?',
-            [nuevaCantidad, carritoId, usuario_id]
+        await connection.beginTransaction();
+
+        for (const item of detalles_pedido) {
+            const [productos] = await connection.query('SELECT cantidad FROM productos WHERE id = ? FOR UPDATE', [item.producto_id]);
+            if (productos.length === 0) throw new Error(`Producto con ID ${item.producto_id} no encontrado.`);
+            
+            const stockActual = productos[0].cantidad;
+            if (stockActual < item.cantidadEnCarrito) {
+                throw new Error(`Stock insuficiente para el producto "${item.nombre}". Solicitado: ${item.cantidadEnCarrito}, Disponible: ${stockActual}`);
+            }
+
+            const nuevoStock = stockActual - item.cantidadEnCarrito;
+            await connection.query('UPDATE productos SET cantidad = ? WHERE id = ?', [nuevoStock, item.producto_id]);
+        }
+        
+        const [resultadoPedido] = await connection.query(
+            'INSERT INTO pedidos (usuario_id, pago_id, total_pagado, detalles_pedido) VALUES (?, ?, ?, ?)',
+            [usuario_id, pago_id, total_pagado, JSON.stringify(detalles_pedido)]
         );
 
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ message: 'Ítem del carrito no encontrado o no pertenece al usuario.' });
-        }
+        const nuevoPedidoId = resultadoPedido.insertId;
+        const reciboXML = generarReciboXML(nuevoPedidoId, pago_id, total_pagado, detalles_pedido);
+        
+        await connection.query(
+            'UPDATE pedidos SET recibo_xml = ? WHERE id = ?',
+            [reciboXML, nuevoPedidoId]
+        );
 
-        res.json({ message: 'Cantidad del carrito actualizada.' });
+        await connection.commit();
+        res.status(201).json({ message: 'Pedido creado exitosamente.', pedidoId: nuevoPedidoId });
 
     } catch (error) {
-        console.error('Error al actualizar la cantidad del carrito:', error);
-        res.status(500).json({ message: 'Error en el servidor al actualizar la cantidad.' });
+        await connection.rollback();
+        console.error('Error al crear el pedido:', error);
+        res.status(500).json({ message: error.message || 'Error interno del servidor al crear el pedido.' });
+    } finally {
+        connection.release();
     }
 });
 
-
-// Eliminar un producto del carrito (OJO: esta ruta puede ser necesaria para el futuro)
-app.delete('/api/carrito/:id', requireAuth, async (req, res) => {
-    const carritoId = req.params.id;
+// Obtener historial de pedidos del usuario logueado
+app.get('/api/pedidos/mis-pedidos', requireAuth, async (req, res) => {
     try {
-        const [result] = await pool.query('DELETE FROM carrito WHERE id = ? AND usuario_id = ?', [carritoId, req.userId]);
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ message: 'Ítem no encontrado en el carrito' });
-        }
-        res.json({ message: 'Producto eliminado del carrito' });
+        const [pedidos] = await pool.query(
+            'SELECT id, pago_id, fecha_pedido, total_pagado, detalles_pedido, estado FROM pedidos WHERE usuario_id = ? ORDER BY fecha_pedido DESC',
+            [req.userId]
+        );
+        res.json(pedidos);
     } catch (error) {
-        console.error('Error al eliminar del carrito:', error);
-        res.status(500).json({ message: 'Error al eliminar producto del carrito' });
+        console.error('Error al obtener el historial de pedidos del usuario:', error);
+        res.status(500).json({ message: 'Error interno del servidor.' });
     }
 });
 
-app.delete('/api/carrito', requireAuth, async (req, res) => {
-  try {
-    await pool.query(
-      'DELETE FROM carrito WHERE usuario_id = ?',
-      [req.userId]
-    );
-    res.json({ message: 'Carrito vaciado' });
-  } catch (error) {
-    console.error('Error al vaciar carrito:', error);
-    res.status(500).json({ message: 'Error al vaciar carrito' });
-  }
+// Obtener TODOS los pedidos (solo para administradores)
+app.get('/api/pedidos/todos', requireAdmin, async (req, res) => {
+    try {
+        const [pedidos] = await pool.query(
+            'SELECT p.id, p.pago_id, p.fecha_pedido, p.total_pagado, p.detalles_pedido, p.estado, u.correo as correo_usuario FROM pedidos p JOIN usuarios u ON p.usuario_id = u.id ORDER BY p.fecha_pedido DESC'
+        );
+        res.json(pedidos);
+    } catch (error) {
+        console.error('Error al obtener todos los pedidos:', error);
+        res.status(500).json({ message: 'Error interno del servidor.' });
+    }
 });
+
+// Obtener un recibo XML por ID de pedido
+app.get('/api/pedidos/:id/recibo', requireAuth, async (req, res) => {
+    const { id } = req.params;
+    const usuario_id = req.userId;
+
+    try {
+        const [userRows] = await pool.query('SELECT rol FROM usuarios WHERE id = ?', [usuario_id]);
+        const isAdmin = userRows.length > 0 && userRows[0].rol === 'administrador';
+        
+        const [pedidoRows] = await pool.query('SELECT recibo_xml, usuario_id FROM pedidos WHERE id = ?', [id]);
+
+        if (pedidoRows.length === 0) {
+            return res.status(404).json({ message: 'Pedido no encontrado.' });
+        }
+
+        const pedido = pedidoRows[0];
+
+        if (pedido.usuario_id !== usuario_id && !isAdmin) {
+            return res.status(403).json({ message: 'Acceso denegado.' });
+        }
+
+        if (!pedido.recibo_xml) {
+            return res.status(404).json({ message: 'Este pedido no tiene un recibo XML asociado.' });
+        }
+
+        res.header('Content-Type', 'application/xml');
+        res.header('Content-Disposition', `attachment; filename="recibo-pedido-${id}.xml"`);
+        res.send(pedido.recibo_xml);
+
+    } catch (error) {
+        console.error(`Error al descargar recibo para pedido ${id}:`, error);
+        res.status(500).json({ message: 'Error interno del servidor al obtener el recibo.' });
+    }
+});
+
 
 
 // Obtener todos los usuarios

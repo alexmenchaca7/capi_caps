@@ -18,8 +18,10 @@
             <span class="producto-cantidad">
               Cantidad:
               <input type="number" 
-                    [ngModel]="producto.cantidadEnCarrito"  (ngModelChange)="actualizarCantidad(producto.carritoId, $event)" 
-                    min="1" /> 
+                     [(ngModel)]="producto.cantidadEnCarrito" 
+                     (change)="actualizarCantidad(producto.carritoId, producto.cantidadEnCarrito)"
+                     min="1" 
+                     [max]="producto.stock" /> 
             </span>
           </div>
           <button class="eliminar-button" (click)="eliminarProducto(producto.carritoId)">Eliminar</button>
@@ -59,16 +61,6 @@
     <h3>¡Compra Realizada!</h3>
     <p>Tu pago de {{ detallesCompra.totalPagado | currency:'MXN':'symbol':'1.2-2' }} ha sido procesado.</p>
     <p>ID de transacción: {{ detallesCompra.transactionId }}</p>
-
-    <div *ngIf="detallesCompra.fallosStock && detallesCompra.fallosStock.length > 0" class="advertencias-stock">
-      <h4>Advertencias sobre el Stock:</h4>
-      <ul class="lista-fallos">
-        <li *ngFor="let fallo of detallesCompra.fallosStock">
-          No se pudo actualizar el stock para: {{ fallo.productoNombre }} (Error: {{ fallo.mensajeError }})
-        </li>
-      </ul>
-      <p>Por favor, contacta a soporte si tienes dudas.</p>
-    </div>
     
     <div class="recibo-modal">
       <h4>Recibo de Compra (XML)</h4>

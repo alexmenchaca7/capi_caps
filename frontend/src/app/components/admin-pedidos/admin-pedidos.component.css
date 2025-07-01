@@ -1,0 +1,95 @@
+.gestion-container {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 1.5rem 2rem;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid #e0e0e0;
+    padding-bottom: 1rem;
+}
+
+.header h2 {
+    margin: 0;
+    color: #333;
+    font-size: 1.8rem;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table th, .table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+    vertical-align: middle;
+}
+
+.table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+}
+
+.product-list {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+.product-list li {
+    margin-bottom: 4px;
+    font-size: 0.9em;
+}
+
+.acciones {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-ver {
+    background-color: #6c757d; /* Gris secundario */
+    color: white;
+    padding: 6px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    text-decoration: none;
+    text-align: center;
+    transition: transform 0.1s ease;
+}
+
+.btn-ver:hover {
+    background-color: #5a6268;
+    transform: scale(1.05);
+}
+
+.text-center {
+    padding: 3rem 0;
+    text-align: center;
+}
+
+.spinner-border {
+    width: 3rem;
+    height: 3rem;
+    color: #6c757d;
+}
+
+.mensaje-error, .mensaje-info {
+    text-align: center;
+    padding: 1rem;
+    margin: 1rem 0;
+    border-radius: 5px;
+    color: white;
+}
+
+.mensaje-error { background-color: #dc3545; }
+.mensaje-info { background-color: #17a2b8; color: white; }
