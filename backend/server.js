@@ -143,65 +143,72 @@ async function requireAdmin(req, res, next) {
 
 // --- RUTAS DE AUTENTICACIÓN ---
 app.post('/api/auth/registro', async (req, res) => {
-  console.log('POST /api/auth/registro - Recibido:', req.body);
-  const { nombre, apellido, username, correo, telefono, contrasena } = req.body;
-  
-  if (!nombre || !apellido || !username || !correo || !contrasena) { // Teléfono es opcional
-    return res.status(400).json({ message: 'Nombre, apellido, nombre de usuario, correo y contraseña son requeridos.' });
-  }
-  if (contrasena.length < 6) {
-      return res.status(400).json({ message: 'La contraseña debe tener al menos 6 caracteres.' });
-  }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) {
-      return res.status(400).json({ message: 'Formato de correo inválido.' });
-  }
-  if (!/^[a-zA-Z0-9_]{3,20}$/.test(username)) { // Validación básica para username
-      return res.status(400).json({ message: 'Nombre de usuario inválido (3-20 caracteres alfanuméricos y guion bajo).' });
-  }
-  if (!validarContrasena(contrasena)) {
+    console.log('POST /api/auth/registro - Recibido:', req.body);
+    const { nombre, apellido, username, correo, telefono, contrasena, confirmarContrasena } = req.body;
+
+    // Validación de que todos los campos requeridos, incluyendo la confirmación, están presentes.
+    if (!nombre || !apellido || !username || !correo || !contrasena || !confirmarContrasena) {
+        return res.status(400).json({ message: 'Todos los campos, incluyendo la confirmación de contraseña, son requeridos.' });
+    }
+
+    // Validación de que las contraseñas coinciden.
+    if (contrasena !== confirmarContrasena) {
+        return res.status(400).json({ message: 'Las contraseñas no coinciden.' });
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) {
+        return res.status(400).json({ message: 'Formato de correo inválido.' });
+    }
+
+    if (!/^[a-zA-Z0-9_]{3,20}$/.test(username)) {
+        return res.status(400).json({ message: 'Nombre de usuario inválido (3-20 caracteres alfanuméricos y guion bajo).' });
+    }
+
+    if (!validarContrasena(contrasena)) {
         return res.status(400).json({ message: 'La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula y un número.' });
-  }
-
-  try {
-    // Verificar si el correo/username/telefono ya existen
-    const [existingUsers] = await pool.query(
-        'SELECT username, correo, telefono FROM usuarios WHERE username = ? OR correo = ? OR (telefono = ? AND telefono IS NOT NULL)',
-        [username, correo, telefono]
-    );
-    
-    if (existingUsers.length > 0) {
-        if (existingUsers.some(u => u.username === username)) {
-            return res.status(409).json({ message: 'El nombre de usuario ya está en uso.' });
-        }
-        if (existingUsers.some(u => u.correo === correo)) {
-            return res.status(409).json({ message: 'El correo electrónico ya está registrado.' });
-        }
-        if (telefono && existingUsers.some(u => u.telefono === telefono)) {
-            return res.status(409).json({ message: 'El número de teléfono ya está registrado.' });
-        }
     }
 
-    const salt = await bcrypt.genSalt(10);
-    const contrasenaHasheada = await bcrypt.hash(contrasena, salt);
+    try {
+        // Verificar si el correo/username/telefono ya existen
+        const [existingUsers] = await pool.query(
+            'SELECT username, correo, telefono FROM usuarios WHERE username = ? OR correo = ? OR (telefono = ? AND telefono IS NOT NULL)',
+            [username, correo, telefono]
+        );
 
-    const [resultado] = await pool.query(
-      'INSERT INTO usuarios (nombre, apellido, username, correo, telefono, contrasena, rol) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [nombre, apellido, username, correo, telefono || null, contrasenaHasheada, 'cliente'] // telefono puede ser null
-    );
-
-    res.status(201).json({ message: 'Usuario registrado exitosamente.', usuarioId: resultado.insertId });
-  } catch (error) {
-    console.error('Error en /api/auth/registro:', error);
-    if (error.code === 'ER_DUP_ENTRY') { // Código de error de MySQL para entradas duplicadas
-        if (error.message.includes('correo')) {
-            return res.status(409).json({ message: 'El correo electrónico ya está registrado.' });
-        } else if (error.message.includes('username')) {
-            return res.status(409).json({ message: 'El nombre de usuario ya está en uso.' });
+        if (existingUsers.length > 0) {
+            if (existingUsers.some(u => u.username === username)) {
+                return res.status(409).json({ message: 'El nombre de usuario ya está en uso.' });
+            }
+            if (existingUsers.some(u => u.correo === correo)) {
+                return res.status(409).json({ message: 'El correo electrónico ya está registrado.' });
+            }
+            if (telefono && existingUsers.some(u => u.telefono === telefono)) {
+                return res.status(409).json({ message: 'El número de teléfono ya está registrado.' });
+            }
         }
+
+        const salt = await bcrypt.genSalt(10);
+        const contrasenaHasheada = await bcrypt.hash(contrasena, salt);
+
+        const [resultado] = await pool.query(
+            'INSERT INTO usuarios (nombre, apellido, username, correo, telefono, contrasena, rol) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [nombre, apellido, username, correo, telefono || null, contrasenaHasheada, 'cliente']
+        );
+
+        res.status(201).json({ message: 'Usuario registrado exitosamente.', usuarioId: resultado.insertId });
+    } catch (error) {
+        console.error('Error en /api/auth/registro:', error);
+        if (error.code === 'ER_DUP_ENTRY') {
+            if (error.message.includes('correo')) {
+                return res.status(409).json({ message: 'El correo electrónico ya está registrado.' });
+            } else if (error.message.includes('username')) {
+                return res.status(409).json({ message: 'El nombre de usuario ya está en uso.' });
+            }
+        }
+        res.status(500).json({ message: 'Error interno del servidor al registrar.' });
     }
-    res.status(500).json({ message: 'Error interno del servidor al registrar.' });
-  }
 });
+
 
 app.post('/api/auth/login', async (req, res) => {
 
@@ -430,7 +437,7 @@ app.post('/api/productos', async (req, res) => {
   if (isNaN(cantidadNumerica) || cantidadNumerica < 0) {
     return res.status(400).json({ message: 'La cantidad debe ser un número no negativo.' });
   }
-  
+
   console.log('POST /api/productos - Datos recibidos:', req.body);
   try {
     const [results] = await pool.query(

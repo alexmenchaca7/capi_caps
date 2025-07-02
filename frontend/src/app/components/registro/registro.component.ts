@@ -25,6 +25,7 @@ export class RegistroComponent {
     correo: '',
     telefono: '', 
     contrasena: '',
+    confirmarContrasena: ''
   };
 
   errorMessage: string | null = null;
@@ -38,20 +39,23 @@ export class RegistroComponent {
     this.successMessage = null;
     this.isLoading = true;
 
+    // --- VALIDACIONES ---
     if (!this.datosUsuario.nombre?.trim() ||
         !this.datosUsuario.apellido?.trim() ||
-        !this.datosUsuario.username?.trim() || // Validar username
+        !this.datosUsuario.username?.trim() || 
         !this.datosUsuario.correo?.trim() ||
         !this.datosUsuario.contrasena) {
       this.errorMessage = "Nombre, apellido, nombre de usuario, correo y contraseña son requeridos.";
       this.isLoading = false;
       return;
     }
-    if (this.datosUsuario.contrasena.length < 6) {
-        this.errorMessage = "La contraseña debe tener al menos 6 caracteres.";
+
+    if (this.datosUsuario.contrasena !== this.datosUsuario.confirmarContrasena) {
+        this.errorMessage = "Las contraseñas no coinciden.";
         this.isLoading = false;
         return;
     }
+
     if (!/^[a-zA-Z0-9_]{3,20}$/.test(this.datosUsuario.username)) {
         this.errorMessage = 'Nombre de usuario inválido (3-20 caracteres alfanuméricos/guion bajo).';
         this.isLoading = false;

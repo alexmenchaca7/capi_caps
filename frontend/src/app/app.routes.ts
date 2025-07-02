@@ -10,6 +10,8 @@ import { GestionUsuariosComponent } from './components/gestion-usuarios/gestion-
 import { PerfilComponent } from './components/perfil/perfil.component';
 import { HistorialPedidosComponent } from './components/historial-pedidos/historial-pedidos.component';
 import { AdminPedidosComponent } from './components/admin-pedidos/admin-pedidos.component';
+import { PoliticaPrivacidadComponent } from './components/politica-privacidad/politica-privacidad.component';
+import { TerminosCondicionesComponent } from './components/terminos-condiciones/terminos-condiciones.component';
 
 // Importar los guards
 import { authGuard } from './guards/auth.guard';
@@ -24,6 +26,8 @@ export const routes: Routes = [
 
   // Rutas que pueden ser accesibles por todos (logueados o no)
   { path: 'productos', component: ProductoComponent },
+  { path: 'politica-privacidad', component: PoliticaPrivacidadComponent },
+  { path: 'terminos-condiciones', component: TerminosCondicionesComponent },
 
   // Rutas que requieren estar logueado (cualquier rol)
   { path: 'carrito', component: CarritoComponent, canActivate: [authGuard] },

@@ -82,6 +82,22 @@
         </small>
     </div>
 
+    <!-- Confirmar Contraseña -->
+    <div class="form-group">
+        <label for="registro-confirmar-contrasena">Confirmar Contraseña:</label>
+        <input type="password" id="registro-confirmar-contrasena"
+              [(ngModel)]="datosUsuario.confirmarContrasena"
+              name="confirmarContrasena" required
+              #confirmarContrasenaInput="ngModel"
+              [ngClass]="{'input-error': (confirmarContrasenaInput.touched && datosUsuario.contrasena !== datosUsuario.confirmarContrasena) || (confirmarContrasenaInput.touched && confirmarContrasenaInput.invalid)}">
+        <div *ngIf="confirmarContrasenaInput.invalid && (confirmarContrasenaInput.dirty || confirmarContrasenaInput.touched)" class="validation-error">
+            <small *ngIf="confirmarContrasenaInput.errors?.['required']">La confirmación de la contraseña es requerida.</small>
+        </div>
+        <div *ngIf="confirmarContrasenaInput.touched && datosUsuario.contrasena !== datosUsuario.confirmarContrasena && !confirmarContrasenaInput.errors?.['required']" class="validation-error">
+            <small>Las contraseñas no coinciden.</small>
+        </div>
+    </div>
+
     <button type="submit" [disabled]="registroForm.invalid || isLoading" class="auth-button">
         <span *ngIf="!isLoading">Registrarse</span>
         <span *ngIf="isLoading">Procesando...</span>
