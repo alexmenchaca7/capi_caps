@@ -1,0 +1,79 @@
+.site-footer {
+    background-color: #222831; /* Un negro azulado, profesional y moderno */
+    color: #eeeeee;
+    padding: 3rem 2rem 1.5rem 2rem;
+    margin-top: auto; /* Empuja el footer hacia abajo */
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.footer-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 2.5rem;
+}
+
+.footer-section h3 {
+    font-size: 1.1rem;
+    margin-bottom: 1.25rem;
+    color: #ffffff;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    position: relative;
+    padding-bottom: 0.5rem;
+}
+
+.footer-section h3::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 35px;
+    height: 2px;
+    background-color: #007bff; /* Acento de color consistente */
+}
+
+.footer-about p {
+    line-height: 1.7;
+    color: #cfd8dc; /* Un gris claro para mejor legibilidad */
+    font-size: 0.95rem;
+}
+
+.footer-links ul, .footer-account ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.footer-links li, .footer-account li {
+    margin-bottom: 0.8rem;
+}
+
+.footer-links a, .footer-account a {
+    color: #cfd8dc;
+    text-decoration: none;
+    transition: color 0.3s ease, padding-left 0.3s ease;
+    display: inline-block;
+}
+
+.footer-links a:hover, .footer-account a:hover {
+    color: #007bff; /* Azul brillante para hover, consistente con botones */
+    padding-left: 5px;
+}
+
+.footer-separator {
+    border: 0;
+    border-top: 1px solid #393e46;
+    margin: 1rem 0;
+}
+
+.footer-bottom {
+    text-align: center;
+    padding-top: 2.5rem;
+    margin-top: 2rem;
+    border-top: 1px solid #393e46; /* Separador sutil */
+    color: #9e9e9e;
+    font-size: 0.9rem;
+}

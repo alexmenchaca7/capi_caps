@@ -1,284 +1,290 @@
-.inventario-container {
-  max-width: 1200px;
-  margin: 2rem auto;
-  padding: 1.5rem;
-  border-radius: 10px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-  background-color: #ffffff;
+/* --- ESTILOS GENERALES DEL COMPONENTE (Consistente con Gestión de Usuarios) --- */
+.gestion-container {
+    max-width: 1100px;
+    margin: 2rem auto;
+    padding: 1.5rem 2rem;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
 }
 
 .header {
-    background-color: #000;
-    border-radius: 10px 10px 0 0;
-    margin: -1.5rem -1.5rem 1.5rem -1.5rem;
-    padding: 2rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
-    position: relative;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid #e0e0e0;
+    padding-bottom: 1rem;
 }
 
 .header h2 {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
+    margin: 0;
+    color: #333;
+    font-size: 1.8rem;
+}
+
+.boton-nuevo {
+    background-color: #28a745;
     color: white;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-}
-
-.acciones__boton {
-    all: unset;
-    text-align: center;
-    padding: 10px;
-    background-color: white;
-    color: black;
+    padding: 0.7rem 1.2rem;
     border: none;
-    border-radius: 4px;
+    border-radius: 5px;
     cursor: pointer;
-    font-weight: bold;
-    text-transform: uppercase;
-    transition: all 0.2s ease;
-}
-
-.acciones__boton:hover {
-    transform: scale(1.01);
-}
-
-.nuevo-producto {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 80px;
-}
-
-.nuevo-producto .campo {
+    font-size: 1rem;
+    font-weight: 500;
+    transition: background-color 0.2s;
     display: flex;
-    flex-direction: column;
-    width: 100%;
-    margin-bottom: 10px;
+    align-items: center;
+    gap: 8px;
 }
 
-.nuevo-producto .campo label {
-    font-weight: 600;
-    text-transform: uppercase;
+.boton-nuevo:hover {
+    background-color: #218838;
 }
 
-.nuevo-producto input {
-    all: unset;
-    padding: 5px;
-    border: 1px solid #ddd;
+.table-responsive {
+    overflow-x: auto;
 }
 
-.nuevo-producto input[type="file"] {
-    padding: 10px 0 0 0;
-    border: none;
-}
-
-.nuevo-producto button {
-  all: unset;
-  text-align: center;
-  padding: 10px;
-  background-color: oklch(0.609 0.126 221.723);
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: bold;
-  text-transform: uppercase;
-  transition: background-color 0.3s ease;
-}
-
-.nuevo-producto button:hover {
-  background-color: oklch(0.45 0.085 224.283);
-}
-
-
-/* TABLA */
 .table {
     width: 100%;
     border-collapse: collapse;
 }
 
-.table__thead {
-    background-color: oklch(0.609 0.126 221.723);
-    color: white;
-}
-
-.table__th {
-    padding: 10px;
+.table th, .table td {
+    padding: 1rem;
     text-align: left;
+    border-bottom: 1px solid #ddd;
+    vertical-align: middle;
 }
 
-.table__td {
-    padding: 15px 10px;
-    height: 50px; /* Fixed height for table rows */
-    overflow: hidden; /* Hide overflow content */
-    vertical-align: middle; /* Center content vertically */
-}
-
-.table__td img {
-    max-height: 100%;
-    object-fit: cover;
-}
-
-.table__td input {
-    all: unset;
-    padding: 5px;
-}
-
-.table__td--acciones {
-    padding: 15px 10px;
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    gap: 20px;
-}
-
-.table__accion {
-    all: unset;
-    text-transform: uppercase;
-    font-size: 14px;
+.table th {
+    background-color: #f8f9fa;
     font-weight: 600;
+}
+
+.acciones {
+    display: flex;
+    gap: 8px;
+}
+
+.acciones button {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 4px;
     cursor: pointer;
+    transition: transform 0.1s ease;
 }
 
-.table__accion--editar {
-    color: green;
+.acciones button:hover {
+    transform: scale(1.05);
 }
 
-.table__accion--eliminar {
-    color: red;
+.btn-editar { background-color: #007bff; color: white; }
+.btn-eliminar { background-color: #dc3545; color: white; }
+
+/* --- ESTILOS ESPECÍFICOS PARA INVENTARIO --- */
+.product-cell {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
 }
 
-.producto-imagen {
-    max-width: 100px;
-    max-height: 100px;
+.product-image {
+    width: 50px;
+    height: 50px;
     object-fit: cover;
     border-radius: 4px;
+    border: 1px solid #ddd;
 }
 
-/* Modal */
+.badge {
+  padding: 0.4em 0.8em;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: white;
+  text-transform: uppercase;
+  display: inline-block;
+  text-align: center;
+}
+
+.badge-success { background-color: #28a745; }
+.badge-danger { background-color: #dc3545; }
+
+/* Estados de carga y vacío */
+.text-center-spinner, .text-center-empty {
+    text-align: center;
+    padding: 2rem;
+    color: #6c757d;
+}
+
+.spinner {
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #3498db;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 0.5rem auto;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+
+/* --- ESTILOS DEL MODAL (Consistente con Gestión de Usuarios) --- */
+
+/* Helper para bloquear el scroll del body cuando el modal está abierto */
+body.modal-open {
+    overflow: hidden;
+}
+
 .modal {
-    display: flex;
-    justify-content: center;
-    align-items: center;
     position: fixed;
-    z-index: 1;
+    z-index: 1050;
     left: 0;
     top: 0;
     width: 100%;
     height: 100%;
-    overflow: auto;
-    background-color: rgba(0, 0, 0, 0.4);
-}
-
-.modal h2 {
-    text-align: center;
-    margin: -20px -20px 20px -20px;
-    padding: 1rem;
-    background-color: #000;
-    color: white;
-    border-radius: 10px 10px 0 0;
-    font-weight: 600;
-    letter-spacing: 0.5px;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: flex-start; 
+    justify-content: center;
+    padding: 3rem 1rem; 
+    overflow-y: auto;
 }
 
 .modal-contenido {
-    background-color: #fefefe;
-    margin: auto;
-    padding: 20px;
-    border: 1px solid #888;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
     width: 100%;
     max-width: 500px;
-    border-radius: 10px;
-}
-
-.formulario-actualizar {
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    gap: 10px;
+    max-height: 90vh; 
+    animation: slideIn 0.3s ease-out;
 }
 
-.formulario-actualizar .campo--imagen {
+@keyframes slideIn {
+    from { transform: translateY(-50px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.modal-contenido h3 {
+    padding: 1.25rem 1.5rem;
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 500;
+    border-bottom: 1px solid #dee2e6;
+    color: #333;
+    flex-shrink: 0;
+}
+
+.modal-contenido form {
+    padding: 1.5rem;
     display: flex;
     flex-direction: column;
-    gap: 10px;
-}
-  
-.formulario-actualizar input {
-    all: unset;
-    padding: 5px;
-    border: 1px solid #ddd;
-    margin-bottom: 10px;
-    width: 100%;
+    gap: 1rem;
+    overflow-y: auto;
+    flex-grow: 1;
 }
 
-.formulario-actualizar input[type="file"] {
-    padding: 10px 0 0 0;
-    border: none;
+.form-group {
+    display: flex;
+    flex-direction: column;
 }
-  
-.formulario-actualizar button {
-    all: unset;
-    text-align: center;
-    padding: 10px;
-    background-color: oklch(0.609 0.126 221.723);
-    color: white;
-    border: none;
+
+.form-group.text-center {
+    align-items: center;
+}
+
+.form-group label {
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: #495057;
+}
+
+.form-group input,
+.form-group select {
+    padding: 0.75rem;
+    border: 1px solid #ced4da;
     border-radius: 4px;
-    cursor: pointer;
-    font-weight: bold;
-    text-transform: uppercase;
-    transition: background-color 0.3s ease;
-}
-  
-.formulario-actualizar button:hover {
-    background-color: oklch(0.45 0.085 224.283);
-}
-
-/* Estilo para el mensaje de éxito */
-.mensaje-exito,
-.mensaje-error {
-    position: fixed;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    color: white;
-    padding: 10px 20px;
     font-size: 1rem;
-    border-radius: 4px;
-    z-index: 1000;
-    box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
-    animation: slideDown 0.5s ease-in-out, fadeOut 0.5s 2.5s forwards;
-    }
-
-    @keyframes slideDown {
-    0% {
-        top: -50px;
-    }
-    100% {
-        top: 0;
-    }
-    }
-
-    @keyframes fadeOut {
-    0% {
-        opacity: 1;
-    }
-    100% {
-        opacity: 0;
-        top: -50px;
-    }
+    transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
 }
 
-.mensaje-exito {
-    background-color: oklch(0.609 0.126 221.723);
+.form-group input[type="file"] {
+    padding: 0.5rem;
 }
 
-.mensaje-error {
-    background-color: red;
+.form-group input:focus,
+.form-group select:focus {
+    border-color: #80bdff;
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
 }
+
+.image-preview {
+    width: 120px;
+    height: 120px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 2px solid #ddd;
+    margin-top: 0.5rem;
+}
+
+.modal-acciones {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    padding: 1rem 1.5rem;
+    border-top: 1px solid #dee2e6;
+    background-color: #f8f9fa;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+    flex-shrink: 0;
+}
+
+.modal-acciones button {
+    padding: 0.6rem 1.2rem;
+    border-radius: 5px;
+    font-weight: 500;
+    border: 1px solid transparent;
+    cursor: pointer;
+}
+
+.btn-guardar {
+    background-color: #007bff;
+    color: white;
+}
+
+.btn-guardar:disabled {
+    background-color: #6c757d;
+    cursor: not-allowed;
+    opacity: 0.65;
+}
+
+.btn-cancelar {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn-cancelar:hover {
+    background-color: #5a6268;
+}
+
+/* --- ESTILOS DE LOS MENSAJES DE ALERTA --- */
+.mensaje-exito, .mensaje-error {
+    text-align: center;
+    padding: 1rem;
+    margin: 0 0 1rem 0;
+    border-radius: 5px;
+    color: white;
+}
+
+.mensaje-exito { background-color: #28a745; }
+.mensaje-error { background-color: #dc3545; }

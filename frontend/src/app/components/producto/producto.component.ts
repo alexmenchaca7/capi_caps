@@ -29,12 +29,12 @@ export class ProductoComponent implements OnInit, OnDestroy {
 
   constructor(
     public inventarioService: InventarioService,
-    private carritoService: CarritoService, // Inyectar CarritoService
+    private carritoService: CarritoService, 
     private router: Router
   ) {}
 
   ngOnInit(): void {
-    this.productosSub = this.inventarioService.obtenerProductos().subscribe({
+    this.productosSub = this.inventarioService.productos$.subscribe({
       next: (productosConDisplayUrl) => {
         this.productos = productosConDisplayUrl;
       },
@@ -43,7 +43,10 @@ export class ProductoComponent implements OnInit, OnDestroy {
       }
     });
 
-    // 3. Nos suscribimos a los cambios del carrito
+    // Disparamos la carga de productos públicos
+    this.inventarioService.cargarProductosPublicos();
+
+    // Nos suscribimos a los cambios del carrito
     this.carritoSub = this.carritoService.carrito$.subscribe(items => {
       this.carrito = items;
     });

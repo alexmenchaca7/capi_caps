@@ -5,7 +5,7 @@ import { Router } from '@angular/router';
 import { HeaderComponent } from '../header/header.component';
 import { InventarioService } from '../../services/inventario.service';
 import { Producto } from '../../models/producto';
-import { Subscription } from 'rxjs';
+import { Subscription, Observable } from 'rxjs';
 
 @Component({
   selector: 'app-inventario',
@@ -15,236 +15,177 @@ import { Subscription } from 'rxjs';
   styleUrls: ['./inventario.component.css']
 })
 export class InventarioComponent implements OnInit, OnDestroy {
+  // --- Propiedades para la Tabla y Datos ---
   productos: (Producto & { displayUrl?: string })[] = [];
-  private productosSub: Subscription | undefined;
+  private inventarioSub!: Subscription;
+  isLoading$: Observable<boolean>;
 
-  nuevoProducto: Producto = new Producto(0, '', undefined, undefined, '');
-  nuevoProductoImagenPreview: string | ArrayBuffer | null = null;
-
-  productoSeleccionado: (Producto & { tempImagenPreview?: string; displayUrl?: string; }) = 
-    new Producto(0, '', undefined, undefined, '');
-
-  mostrarModal: boolean = false;
+  // --- Propiedades para el Modal y el Formulario ---
+  mostrarModal = false;
+  productoActual: Partial<Producto & { tempImagenPreview?: string }> = {};
+  isEditMode = false;
+  
+  // --- Propiedades para el Manejo de Archivos ---
   selectedFile: File | null = null;
-  mensajeExito: string | null = null;
-  mensajeError: string | null = null;
+  
+  // --- Propiedades para Mensajes de Feedback ---
+  mensaje = '';
+  mensajeError = '';
 
-  constructor(public inventarioService: InventarioService, private router: Router) {}
+  constructor(
+    public inventarioService: InventarioService, 
+    private router: Router
+  ) {
+    this.isLoading$ = this.inventarioService.isLoading$;
+  }
 
   ngOnInit(): void {
-    this.productosSub = this.inventarioService.obtenerProductos().subscribe({
-      next: (productosConDisplayUrl) => {
-        this.productos = productosConDisplayUrl;
+    this.inventarioSub = this.inventarioService.inventario$.subscribe({
+      next: (productosDelInventario) => {
+        this.productos = productosDelInventario;
       },
       error: (error) => {
-        console.error('Error al cargar productos en InventarioComponent:', error);
-        this.mostrarMensajeError(error.message || 'Error al cargar productos.');
+        this.mostrarMensajeError(error.message || 'Error al cargar el inventario.');
       }
     });
+
+    this.inventarioService.cargarInventarioCompleto();
   }
 
   ngOnDestroy(): void {
-    if (this.productosSub) {
-      this.productosSub.unsubscribe();
+    if (this.inventarioSub) {
+      this.inventarioSub.unsubscribe();
     }
+     // Asegurarnos de limpiar la clase del body si el componente se destruye
+    document.body.classList.remove('modal-open');
   }
 
-  onFileSelected(event: Event, isUpdate: boolean = false): void {
+  // --- Métodos para el Modal ---
+
+  abrirModal(producto?: Producto & { displayUrl?: string }): void {
+    this.limpiarMensajes();
+    this.selectedFile = null;
+
+    if (producto) {
+      this.isEditMode = true;
+      this.productoActual = { 
+        ...producto,
+        tempImagenPreview: producto.displayUrl || 'assets/default.webp'
+      };
+    } else {
+      this.isEditMode = false;
+      this.productoActual = {
+        nombre: '',
+        precio: undefined,
+        cantidad: undefined,
+        imagen: '',
+        tempImagenPreview: 'assets/default.webp'
+      };
+    }
+    this.mostrarModal = true;
+    // Añadimos la clase al body para bloquear el scroll
+    document.body.classList.add('modal-open');
+  }
+
+  cerrarModal(): void {
+    this.mostrarModal = false;
+    this.productoActual = {};
+    // Quitamos la clase del body para restaurar el scroll
+    document.body.classList.remove('modal-open');
+  }
+
+  // --- Métodos para el Formulario y CRUD ---
+
+  onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
       this.selectedFile = input.files[0];
       const reader = new FileReader();
       reader.onload = () => {
-        if (isUpdate && this.productoSeleccionado) {
-          this.productoSeleccionado.tempImagenPreview = reader.result as string;
-        } else {
-          this.nuevoProductoImagenPreview = reader.result;
+        if (this.productoActual) {
+          this.productoActual.tempImagenPreview = reader.result as string;
         }
       };
       reader.readAsDataURL(this.selectedFile);
-    } else {
-      this.selectedFile = null;
-      if (isUpdate && this.productoSeleccionado) {
-        this.productoSeleccionado.tempImagenPreview = this.productoSeleccionado.displayUrl;
-      } else {
-        this.nuevoProductoImagenPreview = null;
-      }
     }
   }
 
-  agregarProducto(): void {
-    if (!this.nuevoProducto.nombre?.trim() || this.nuevoProducto.cantidad === undefined || this.nuevoProducto.precio === undefined) {
+  guardarProducto(): void {
+    if (!this.productoActual.nombre?.trim() || this.productoActual.cantidad === undefined || this.productoActual.precio === undefined) {
       this.mostrarMensajeError('Nombre, cantidad y precio son obligatorios.');
       return;
     }
-    if (Number(this.nuevoProducto.precio) <= 0 || Number(this.nuevoProducto.cantidad) < 0) {
-        this.mostrarMensajeError('Precio debe ser mayor a 0 y cantidad no puede ser negativa.');
-        return;
-    }
-    if (!this.selectedFile) {
-      this.mostrarMensajeError('Debe seleccionar una imagen para el nuevo producto.');
+    if (Number(this.productoActual.precio) <= 0 || Number(this.productoActual.cantidad) < 0) {
+      this.mostrarMensajeError('El precio debe ser mayor a 0 y la cantidad no puede ser negativa.');
       return;
     }
-
-    this.inventarioService.saveFile(this.selectedFile).subscribe({
-      next: (uploadResponse) => {
-        const productoParaGuardar: Omit<Producto, 'id'> = {
-          nombre: this.nuevoProducto.nombre!,
-          cantidad: Number(this.nuevoProducto.cantidad),
-          precio: Number(this.nuevoProducto.precio),
-          imagen: uploadResponse.path
-        };
-
-        this.inventarioService.agregarProducto(productoParaGuardar).subscribe({
-          next: () => {
-            this.mostrarMensajeExito('Producto agregado con éxito!');
-            this.nuevoProducto = new Producto(0, '', undefined, undefined, '');
-            this.selectedFile = null;
-            this.nuevoProductoImagenPreview = null;
-          },
-          error: (error) => this.mostrarMensajeError(`Error al guardar el producto: ${error.message || 'Error desconocido'}`)
-        });
-      },
-      error: (error) => {
-        console.error('Error subiendo imagen al agregar:', error);
-        this.mostrarMensajeError(`Error al subir la imagen: ${error.message || 'Error desconocido'}`);
-      }
-    });
-  }
-
-  // abrirModal ahora solo toma un argumento 'producto'
-  abrirModal(producto: Producto & { displayUrl?: string }): void {
-    this.productoSeleccionado = {
-        ...producto,
-        precio: producto.precio !== undefined ? Number(producto.precio) : undefined,
-        cantidad: producto.cantidad !== undefined ? Number(producto.cantidad) : undefined,
-        tempImagenPreview: producto.displayUrl || 'assets/default.webp'
-    };
-    this.mostrarModal = true;
-    this.selectedFile = null;
-    document.body.style.overflow = 'hidden';
-  }
-
-  cerrarModal(event?: MouseEvent): void {
-    if (event) {
-      const target = event.target as HTMLElement;
-      if (target.classList.contains('modal')) {
-        this.mostrarModal = false;
-        document.body.style.overflow = 'auto';
-      }
-    } else {
-      this.mostrarModal = false;
-      document.body.style.overflow = 'auto';
-    }
-    this.selectedFile = null;
-    if (this.productoSeleccionado) {
-        this.productoSeleccionado.tempImagenPreview = undefined;
-    }
-  }
-
-  actualizarProducto(): void {
-    if (!this.productoSeleccionado || !this.productoSeleccionado.id) {
-        this.mostrarMensajeError('No hay producto seleccionado para actualizar o falta ID.');
-        return;
-    }
-    if (!this.productoSeleccionado.nombre?.trim() || this.productoSeleccionado.cantidad === undefined || this.productoSeleccionado.precio === undefined) {
-      this.mostrarMensajeError('Nombre, cantidad y precio son obligatorios.');
-      return;
-    }
-    if (Number(this.productoSeleccionado.precio) <= 0 || Number(this.productoSeleccionado.cantidad) < 0) {
-        this.mostrarMensajeError('Precio debe ser mayor a 0 y cantidad no puede ser negativa.');
+    if (!this.isEditMode && !this.selectedFile) {
+        this.mostrarMensajeError('Debe seleccionar una imagen para el nuevo producto.');
         return;
     }
 
-    const datosActualizados: Partial<Omit<Producto, 'id'>> = {
-        nombre: this.productoSeleccionado.nombre,
-        cantidad: Number(this.productoSeleccionado.cantidad),
-        precio: Number(this.productoSeleccionado.precio),
-        imagen: this.productoSeleccionado.imagen
-    };
+    const guardarDatosProducto = (rutaImagen?: string) => {
+      const datosParaGuardar: Partial<Producto> = {
+        nombre: this.productoActual.nombre,
+        cantidad: Number(this.productoActual.cantidad),
+        precio: Number(this.productoActual.precio),
+        imagen: rutaImagen ?? this.productoActual.imagen
+      };
 
-    const proceedWithActualUpdate = (nuevaRutaImagenRelativa?: string) => {
-        if (nuevaRutaImagenRelativa) {
-            datosActualizados.imagen = nuevaRutaImagenRelativa;
-        }
+      const accion$ = this.isEditMode
+        ? this.inventarioService.actualizarProducto(this.productoActual.id!, datosParaGuardar)
+        : this.inventarioService.agregarProducto(datosParaGuardar as Producto);
 
-        this.inventarioService.actualizarProducto(this.productoSeleccionado.id, datosActualizados).subscribe({
-            next: () => {
-                this.mostrarMensajeExito('Producto actualizado con éxito!');
-                this.cerrarModal();
-            },
-            error: (error) => this.mostrarMensajeError(`Error al actualizar el producto: ${error.message || 'Error desconocido'}`)
-        });
+      accion$.subscribe({
+        next: () => {
+          this.mostrarMensaje(`Producto ${this.isEditMode ? 'actualizado' : 'agregado'} con éxito.`);
+          this.cerrarModal();
+        },
+        error: (err) => this.mostrarMensajeError(err.message || 'Ocurrió un error al guardar.')
+      });
     };
 
     if (this.selectedFile) {
-        this.inventarioService.saveFile(this.selectedFile).subscribe({
-            next: (uploadResponse) => {
-                const imagenOriginalRelativa = this.productoSeleccionado.imagen;
-                if (imagenOriginalRelativa && imagenOriginalRelativa !== uploadResponse.path && imagenOriginalRelativa.startsWith('uploads/')) {
-                    const nombreArchivoOriginal = imagenOriginalRelativa.split('/').pop();
-                    if (nombreArchivoOriginal) {
-                        this.inventarioService.deleteFile(nombreArchivoOriginal).subscribe({
-                            next: () => console.log('Archivo de imagen anterior eliminado: ' + nombreArchivoOriginal),
-                            error: (err) => console.warn('No se pudo eliminar el archivo de imagen anterior:', err.message)
-                        });
-                    }
-                }
-                proceedWithActualUpdate(uploadResponse.path);
-            },
-            error: (error) => {
-                console.error('Error subiendo nueva imagen al actualizar:', error);
-                this.mostrarMensajeError(`Error al subir la nueva imagen: ${error.message || 'Error desconocido'}`);
-            }
-        });
+      this.inventarioService.saveFile(this.selectedFile).subscribe({
+        next: (uploadResponse) => {
+          guardarDatosProducto(uploadResponse.path);
+        },
+        error: (err) => this.mostrarMensajeError(err.message || 'Error al subir la imagen.')
+      });
     } else {
-        proceedWithActualUpdate();
+      guardarDatosProducto();
     }
   }
 
-  eliminarProducto(productoId: number): void {
-    if (!confirm('¿Estás seguro de que quieres eliminar este producto?')) {
-        return;
+  eliminarProducto(productoId?: number): void {
+    if (productoId === undefined) return;
+
+    if (confirm('¿Estás seguro de que deseas eliminar este producto? Esta acción no se puede deshacer.')) {
+      this.inventarioService.eliminarProducto(productoId).subscribe({
+        next: () => {
+          this.mostrarMensaje('Producto eliminado con éxito.');
+        },
+        error: (err) => this.mostrarMensajeError(err.message || 'Error al eliminar el producto.')
+      });
     }
-    const productoAEliminar = this.productos.find(p => p.id === productoId);
-    this.inventarioService.eliminarProducto(productoId).subscribe({
-      next: () => {
-        this.mostrarMensajeExito('Producto eliminado con éxito!');
-        if (productoAEliminar && productoAEliminar.imagen && productoAEliminar.imagen.startsWith('uploads/')) {
-          const nombreArchivo = productoAEliminar.imagen.split('/').pop();
-          if (nombreArchivo) {
-            this.inventarioService.deleteFile(nombreArchivo).subscribe({
-              next: () => console.log(`Archivo de imagen ${nombreArchivo} eliminado del servidor.`),
-              error: (err) => console.warn(`No se pudo eliminar el archivo de imagen ${nombreArchivo} de uploads:`, err.message)
-            });
-          }
-        }
-      },
-      error: (error) => {
-        console.error("Error completo al eliminar:", error);
-        this.mostrarMensajeError(`Error al eliminar: ${error.message || 'Error desconocido'}`);
-      }
-    });
   }
 
-  irAProductos(): void {
-    this.router.navigate(['/productos']);
-  }
+  // --- Métodos de Utilidad (Feedback al usuario) ---
 
-  private mostrarMensajeExito(mensaje: string): void {
-    this.mensajeExito = mensaje;
-    this.mensajeError = null;
-    setTimeout(() => this.mensajeExito = null, 3000);
+  private mostrarMensaje(mensaje: string): void {
+    this.limpiarMensajes();
+    this.mensaje = mensaje;
+    setTimeout(() => this.mensaje = '', 4000);
   }
 
   private mostrarMensajeError(mensaje: string): void {
+    this.limpiarMensajes();
     this.mensajeError = mensaje;
-    this.mensajeExito = null;
-    setTimeout(() => this.mensajeError = null, 3000);
+    setTimeout(() => this.mensajeError = '', 5000);
   }
-
-  validarNumero(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    input.value = input.value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
+  
+  private limpiarMensajes(): void {
+      this.mensaje = '';
+      this.mensajeError = '';
   }
 }

@@ -2,9 +2,23 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
 
 body {
+    height: 100%;
     font-family: "Poppins", sans-serif;
     margin: 0;
 }
+
+/* Hacemos que el componente raíz ocupe toda la altura y sea un contenedor flex */
+app-root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* El router-outlet (donde se carga el contenido principal) debe crecer para ocupar el espacio disponible */
+router-outlet + * {
+  flex-grow: 1;
+}
+
 
 .auth-container {
     max-width: 400px;
@@ -17,76 +31,75 @@ body {
   }
   
 .auth-container h2 {
-text-align: center;
-margin-bottom: 1.5rem;
-color: #333;
+    text-align: center;
+    margin-bottom: 1.5rem;
+    color: #333;
 }
 
 .auth-form .form-group {
-margin-bottom: 1rem;
+    margin-bottom: 1rem;
 }
 
 .auth-form label {
-display: block;
-margin-bottom: 0.5rem;
-font-weight: 500;
-color: #555;
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: #555;
 }
 
 .auth-form input[type="text"],
 .auth-form input[type="email"],
 .auth-form input[type="password"],
 .auth-form input[type="tel"] {
-  
-width: 100%;
-padding: 0.75rem;
-border: 1px solid #ccc;
-border-radius: 4px;
-box-sizing: border-box;
-font-size: 1rem;
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+    font-size: 1rem;
 }
 
 .auth-form input.input-error {
-border-color: #dc3545; /* Rojo error */
+    border-color: #dc3545; /* Rojo error */
 }
 
 .validation-error small {
-color: #dc3545;
-display: block;
-margin-top: 0.25rem;
-font-size: 0.875em;
+    color: #dc3545;
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.875em;
 }
 
 .auth-button {
-width: 100%;
-padding: 0.75rem;
-background-color: #007bff; /* Azul primario */
-color: white;
-border: none;
-border-radius: 4px;
-font-size: 1rem;
-font-weight: bold;
-cursor: pointer;
-transition: background-color 0.2s ease;
+    width: 100%;
+    padding: 0.75rem;
+    background-color: #007bff; /* Azul primario */
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
 }
 
 .auth-button:hover {
-background-color: #0056b3;
+    background-color: #0056b3;
 }
 
 .auth-button:disabled {
-background-color: #ccc;
-cursor: not-allowed;
+    background-color: #ccc;
+    cursor: not-allowed;
 }
 
 .auth-links {
-margin-top: 1.5rem;
-text-align: center;
+    margin-top: 1.5rem;
+    text-align: center;
 }
 
 .auth-links p {
-margin-bottom: 0.5rem;
-font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
 }
 
 .auth-links a {

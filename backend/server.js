@@ -425,6 +425,12 @@ app.post('/api/productos', async (req, res) => {
   if (!nombre || cantidad === undefined || precio === undefined) {
     return res.status(400).json({ message: 'Nombre, cantidad y precio son requeridos.' });
   }
+  // Asegurarnos que la cantidad sea un número, incluso si es 0
+  const cantidadNumerica = Number(cantidad);
+  if (isNaN(cantidadNumerica) || cantidadNumerica < 0) {
+    return res.status(400).json({ message: 'La cantidad debe ser un número no negativo.' });
+  }
+  
   console.log('POST /api/productos - Datos recibidos:', req.body);
   try {
     const [results] = await pool.query(

@@ -1,13 +1,16 @@
 import { Component } from '@angular/core';
-import { RouterModule } from '@angular/router';
+import { CommonModule } from '@angular/common';
+import { RouterOutlet } from '@angular/router';
+import { FooterComponent } from './components/footer/footer.component';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterModule],
+  standalone: true,
+  // Se ha eliminado HeaderComponent de los imports
+  imports: [CommonModule, RouterOutlet, FooterComponent], 
   templateUrl: './app.component.html',
-  styleUrls: ['./app.component.css'] // Cambiado a styleUrls
+  styleUrls: ['./app.component.css']
 })
-
 export class AppComponent {
-  title = 'capi_caps';
+  title = 'capi_caps_frontend';
 }

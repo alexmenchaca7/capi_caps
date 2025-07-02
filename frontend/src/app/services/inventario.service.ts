@@ -17,6 +17,10 @@ export class InventarioService {
   private productosSubject = new BehaviorSubject<(Producto & { displayUrl?: string })[]>([]);
   productos$ = this.productosSubject.asObservable();
 
+  // Nuevo Subject para el inventario completo
+  private inventarioSubject = new BehaviorSubject<(Producto & { displayUrl?: string })[]>([]);
+  inventario$ = this.inventarioSubject.asObservable();
+
   private isLoading = new BehaviorSubject<boolean>(false);
   isLoading$ = this.isLoading.asObservable();
 
@@ -24,10 +28,8 @@ export class InventarioService {
     private http: HttpClient,
     @Inject(PLATFORM_ID) private platformId: Object
   ) {
-    console.log(`InventarioService CONSTRUCTOR (Entorno: ${isPlatformBrowser(this.platformId) ? 'Browser' : 'Server'})`);
-    // La carga inicial se hace una vez. HttpClient con withHttpTransferCacheOptions
-    // se encargará de usar el cache si la petición ya se hizo en el servidor.
-    this.cargarProductosDesdeHttp();
+    // La carga inicial se puede manejar en los componentes directamente
+    // para mayor claridad de qué se está cargando y cuándo.
   }
 
   // Este método procesa los productos crudos de la API para añadirles la displayUrl
@@ -214,5 +216,42 @@ export class InventarioService {
     }
     console.error('InventarioService handleError:', errorMessage, error);
     return throwError(() => new Error(errorMessage));
+  }
+
+  // Método para obtener solo los productos con stock para el catálogo público
+  cargarProductosPublicos(): void {
+    this.isLoading.next(true);
+    this.http.get<Producto[]>(`${this.apiUrl}/productos`).pipe(
+      map(productosApi => this.procesarProductosParaDisplay(productosApi)),
+      catchError(this.handleError.bind(this))
+    ).subscribe({
+      next: (productosProcesados) => {
+        this.productosSubject.next(productosProcesados);
+        this.isLoading.next(false);
+      },
+      error: (error) => {
+        this.productosSubject.next([]);
+        this.isLoading.next(false);
+      }
+    });
+  }
+  
+  // Método para obtener TODOS los productos para el inventario
+  cargarInventarioCompleto(): void {
+    this.isLoading.next(true);
+    // Apuntamos a la nueva ruta de inventario que trae TODOS los productos
+    this.http.get<Producto[]>(`${this.apiUrl}/inventario`).pipe(
+      map(productosApi => this.procesarProductosParaDisplay(productosApi)),
+      catchError(this.handleError.bind(this))
+    ).subscribe({
+      next: (productosProcesados) => {
+        this.inventarioSubject.next(productosProcesados);
+        this.isLoading.next(false);
+      },
+      error: (error) => {
+        this.inventarioSubject.next([]);
+        this.isLoading.next(false);
+      }
+    });
   }
 }

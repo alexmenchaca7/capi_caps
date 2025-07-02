@@ -1,0 +1,53 @@
+<footer class="site-footer">
+  <div class="footer-container">
+    <!-- Sección "Acerca de" -->
+    <div class="footer-section footer-about">
+      <h3 class="footer-title">CapiCaps</h3>
+      <p>La mejor selección de gorras y accesorios. Estilo y calidad que marcan la diferencia. Hecho en Zapopan, Jalisco.</p>
+    </div>
+
+    <!-- Sección de Navegación Principal -->
+    <div class="footer-section footer-links">
+      <h3 class="footer-title">Navegación</h3>
+      <ul>
+        <li><a routerLink="/">Inicio</a></li>
+        <!-- Enlaces para Clientes y Visitantes -->
+        <ng-container *ngIf="!(isAdmin$ | async)">
+          <li><a routerLink="/productos">Catálogo de Productos</a></li>
+          <li><a routerLink="/carrito">Mi Carrito</a></li>
+        </ng-container>
+         <!-- Enlaces solo para Administradores -->
+        <ng-container *ngIf="isAdmin$ | async">
+            <li><a routerLink="/inventario">Gestionar Inventario</a></li>
+            <li><a routerLink="/gestion-usuarios">Gestionar Usuarios</a></li>
+            <li><a routerLink="/admin/pedidos">Ver todos los Pedidos</a></li>
+        </ng-container>
+      </ul>
+    </div>
+
+    <!-- Sección de Cuenta y Legal -->
+    <div class="footer-section footer-account">
+      <h3 class="footer-title">Cuenta y Legal</h3>
+      <ul>
+        <!-- Para usuarios no logueados -->
+        <ng-container *ngIf="!(isLoggedIn$ | async)">
+          <li><a routerLink="/login">Iniciar Sesión</a></li>
+          <li><a routerLink="/registro">Registrarse</a></li>
+        </ng-container>
+        <!-- Para usuarios logueados (clientes y admins) -->
+        <ng-container *ngIf="isLoggedIn$ | async">
+          <li><a routerLink="/perfil">Mi Perfil</a></li>
+           <!-- Solo para Clientes -->
+          <li *ngIf="!(isAdmin$ | async)"><a routerLink="/mis-compras">Mis Compras</a></li>
+        </ng-container>
+        <hr class="footer-separator">
+        <li><a routerLink="/terminos-condiciones">Términos y Condiciones</a></li>
+        <li><a routerLink="/politica-privacidad">Política de Privacidad</a></li>
+      </ul>
+    </div>
+
+  </div>
+  <div class="footer-bottom">
+    <p>&copy; {{ currentYear }} CapiCaps. Todos los derechos reservados.</p>
+  </div>
+</footer>
