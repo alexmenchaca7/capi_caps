@@ -100,7 +100,7 @@ export class AuthService {
 
 
   recuperarContrasenaSimple(datosRecuperacion: { loginIdentifier: string, nuevaContrasena: string }): Observable<AuthResponseSimple> {
-    return this.http.post<AuthResponseSimple>(`${this.apiUrl}/recuperar-simple`, datosRecuperacion).pipe(
+    return this.http.post<AuthResponseSimple>(`${this.apiUrl}/auth/recuperar-simple`, datosRecuperacion).pipe(
       catchError(this.handleError)
     );
   }
